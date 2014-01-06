@@ -1,16 +1,17 @@
 {
   "name": "puppets",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A modular framework for Marionette",
   "main": "build/puppets.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "keywords": [
     "puppets",
     "marionette",
     "modules"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Puppets/puppets.git"
+  },
   "author": "Jmeas",
   "license": "MIT",
   "devDependencies": {
