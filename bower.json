@@ -1,0 +1,22 @@
+{
+  "name": "puppets",
+  "version": "1.0.0",
+  "authors": [
+    "Jmeas <jellyes2@gmail.com>"
+  ],
+  "description": "A modular framework for Marionette",
+  "main": "build/puppets.js",
+  "keywords": [
+    "marionette",
+    "puppets",
+    "modules"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

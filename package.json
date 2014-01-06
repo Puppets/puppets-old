@@ -1,0 +1,21 @@
+{
+  "name": "puppets",
+  "version": "1.0.0",
+  "description": "A modular framework for Marionette",
+  "main": "build/puppets.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "puppets",
+    "marionette",
+    "modules"
+  ],
+  "author": "Jmeas",
+  "license": "MIT",
+  "devDependencies": {
+    "grunt": "~0.4.2",
+    "concat": "~0.2.4",
+    "grunt-contrib-clean": "~0.5.0"
+  }
+}
