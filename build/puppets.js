@@ -381,6 +381,14 @@
       
     },
 
+    closeView: function( view ) {
+      if (view.close) { view.close(); }
+      else if (view.remove) { view.remove(); }
+      this._trigger( 'close' );
+      Marionette.triggerMethod.call(this, "close");
+      delete this.currentView;
+    },
+
     slide: function( $el, type, view ) {
 
       var self = this;
@@ -389,7 +397,6 @@
         self._trigger( 'open' );
         $el.hide();
         $el.html( view.el );
-        self._trigger( 'open' );
         $el.slideDown( self.duration, function() {
           self._trigger( 'ready' );
         });
@@ -397,22 +404,16 @@
       else {
         self._trigger( 'closing' );
         $el.slideUp( self.duration, function() {
-        if (view.close) { view.close(); }
-        else if (view.remove) { view.remove(); }
-        self._trigger( 'close' );
-        Marionette.triggerMethod.call(self, "close");
-        delete self.currentView;
-      });
+          _.bind(self.closeView, self, view)();
+        });
       }
       
-
     },
 
     fade: function( $el, type, view ) {
 
       var self = this;
       if ( type === 'in' ) {
-        self._trigger( 'open' );
         $el.hide();
         $el.html( view.el );
         var self = this;
@@ -423,7 +424,7 @@
       } else {
         self._trigger( 'closing' );
         $el.fadeOut( self.duration, function() {
-          self._trigger( 'close' );
+          _.bind(self.closeView, self, view)();
         });
 
       }
@@ -440,7 +441,7 @@
       else {
         this._trigger( 'closing' );
         $el.empty();
-        this._trigger( 'close' );
+        _.bind(this.closeView, this, view)();
       }
 
     },
