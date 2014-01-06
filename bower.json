@@ -5,6 +5,7 @@
     "Jmeas <jellyes2@gmail.com>"
   ],
   "description": "A modular framework for Marionette",
+  "homepage": "https://github.com/Puppets/puppets",
   "main": "build/puppets.js",
   "keywords": [
     "marionette",

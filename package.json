@@ -12,6 +12,9 @@
     "type": "git",
     "url": "https://github.com/Puppets/puppets.git"
   },
+  "bugs": {
+    "url": "https://github.com/Puppets/puppets/issues"
+  },
   "author": "Jmeas",
   "license": "MIT",
   "devDependencies": {
