@@ -1,6 +1,12 @@
-// The base controller from which all puppets extend
-// This ties all of the pieces of the puppet together, and communicates with the outside world
-// via the application's wreqr
+/*
+ *
+ * Puppets.Puppet
+ * --------------
+ * The base module from which all Puppets extend
+ * It sets up the components of the module,
+ * and speaks to the Application via the global channel (Application.vent, etc.)
+ *
+ */
 
 (function() {
 
@@ -15,13 +21,11 @@
       this.open = false;
       this._isInitialized= false;
       this.app = app;
-      this.vent = new Backbone.Wreqr.EventAggregator();
-      this.commands = new Backbone.Wreqr.Commands();
-      this.reqres = new Backbone.Wreqr.RequestResponse();
+      this.localVent = new Backbone.Wreqr.EventAggregator();
+      this.localCommands = new Backbone.Wreqr.Commands();
+      this.localReqres = new Backbone.Wreqr.RequestResponse();
       this.moduleName = name;
 
-      this._configProperties( options );
-      this._configLocalWreqr( options );
       this._configGlobalWreqr( options );
 
       this.region.duration = options.duration ? options.duration : 500;
@@ -36,6 +40,61 @@
 
       // Call the parent's constructor function
       Marionette.Controller.prototype.constructor.apply(this, Array.prototype.slice(arguments));
+
+      this._components = {};
+      this._linkComponents();
+
+    },
+
+    // Get or set components
+    component: function( name, object ) {
+
+      // If there's no object, then retrieve the component
+      if ( !object ) {
+        return this._getComponent( name );
+      }
+      // Return false if the component has already been set; they can't be overwritten (yet)
+      else if ( this._hasComponent( name ) ) {
+        return false;
+      }
+      // Otherwise, add a new component
+      else {
+        this._components[name] = object;
+      }
+
+    },
+
+    // Check whether the component exists or not
+    _hasComponent: function( name ) {
+
+      return _.has( this._components, name );
+
+    },
+
+    // Returns a component by name
+    _getComponent: function( name ) {
+
+      return this._components[name];
+
+    },
+
+    // Gives the component the local vent and access to the components
+    _linkComponents: function() {
+
+      if (!this.components) {
+        return;
+      }
+      _.each(components, function(component, name) {
+
+        // Give them names and access to the local wreqr channel
+        component.componentName = name;
+        component.moduleName = this.moduleName;
+        component.localVent = this.localVent;
+        component.localCommands = this.localCommands;
+        component.localReqres = this.localReqres;
+        this.component( name, component );
+
+      }, this);
 
     },
 
@@ -175,59 +234,7 @@
         this.app.vent.on( eventName, _.bind( method, this ) ); 
       }, this);
 
-    },
-
-    _configProperties: function( options ) {
-
-      var components = [
-        'model',
-        'region',
-        'regionManager',
-        'view',
-        'itemView',
-        'collectionView',
-        'compositeView',
-        'controller'
-      ];
-
-      _.each( components, function(component) {
-
-        if ( options[component] ) {
-          this[component] = options[component];
-        }
-
-      }, this);
-
-    },
-
-    // Automatically share this wreqr with every component of the module
-    _configLocalWreqr: function( options ) {
-
-      var components = [
-        'region',
-        'regionManager',
-        'view',
-        'itemView',
-        'collectionView',
-        'compositeView',
-        'controller'
-      ];
-
-      var wreqr = {
-        vent: this.vent,
-        commands: this.commands,
-        reqres: this.commands
-      };
-
-      _.each( components, function(component) {
-
-        if ( options[component] || this[component] ) {
-          this[component] = _.extend( this[component], options[component], wreqr );
-        }
-
-      }, this);
-
-    },
+    }
 
   });
 
