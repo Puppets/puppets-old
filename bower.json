@@ -19,5 +19,11 @@
     "bower_components",
     "test",
     "tests"
-  ]
+  ],
+  "devDependencies": {
+    "underscore": "~1.5.2",
+    "backbone": "~1.1.0",
+    "marionette": "~1.4.1",
+    "jquery": "~2.0.3"
+  }
 }

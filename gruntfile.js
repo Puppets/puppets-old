@@ -1,5 +1,14 @@
 module.exports = function( grunt ) {
 
+  var fileList = [
+    'src/puppets.application.js',
+    'src/puppets.region.js',
+    'src/puppets.item-view.js',
+    'src/puppets.puppet.js',
+    'src/puppets.events.js',
+    'src/puppets.stateful.js'
+  ];
+
   grunt.initConfig({
 
     clean: {
@@ -10,16 +19,14 @@ module.exports = function( grunt ) {
 
     uglify: {
       main: {
-        src: 'src/*.js',
+        src: fileList,
         dest: 'build/puppets.min.js'
       }
     },
 
     concat: {
       main: {
-        src: [
-          'src/*.js'
-        ],
+        src: fileList,
         dest: 'build/puppets.js'
       }
     }

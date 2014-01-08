@@ -6,6 +6,9 @@
 
   var Region = Marionette.Region.extend({
 
+    _defaultDuration: 500,
+    _defaultTransition: 'pop',
+
     constructor: function( options ){
 
       // Call the parent's constructor function
