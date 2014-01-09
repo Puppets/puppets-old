@@ -1,3 +1,164 @@
+/*
+ * Backbone.Channel
+ * A means to organize Wreqr instances into channels
+ *
+ */
+
+ Backbone.Channel = {
+
+  // Set up a channel on this object, defaulting to a new `local` channel
+  // Returns the newly created channel
+  addChannel: function( channelName, vent, commands, reqres ) {
+
+    channelName  = channelName  || 'local';
+
+    vent     = vent     || new Backbone.Wreqr.EventAggregator();
+    commands = commands || new Backbone.Wreqr.Commands();
+    reqres   = reqres   || new Backbone.Wreqr.RequestResponse();
+
+    this._channels = this._channels || {};
+
+    // Overwrites any existing channel. Consider memory leaks?
+    this._channels[channelName] = {
+      channelName: channelName,
+      vent: vent,
+      commands: commands,
+      reqres: reqres
+    };
+
+    return this._channels[ channelName ];
+
+  },
+
+  // Safely remove a channel
+  removeChannel: function( channelName ) {
+
+    var channel = this.channel( channelName );
+
+    if ( !channel ) {
+      return;
+    }
+
+    channel.vent.off();
+    channel.reqres.removeAllHandlers();
+    channel.commands.removeAllHandlers();
+    delete channel;
+
+  },
+
+  // Return the channel so you can emit events like
+  // this.channel('global').vent('eventName')
+  channel: function( name ) {
+    return this._channels[ name ];
+  },
+
+  // Attach events from a hash to a channel, defaulting to local
+  attachVent: function( vents, channel ) {
+
+    channel  = channel || 'local';
+    vents = this._methodsFromHash( vents );
+
+    _.each( vents, function(fn, ventName) {
+      this.channel( channel ).vent.on( ventName, _.bind(fn, this) );
+    }, this);
+
+    return this;
+
+  },
+
+  // Attach commands from a hash to a channel, defaulting to local
+  attachCommands: function( commandsHash, channel ) {
+
+    channel = channel || 'local';
+    commandsHash = this._methodsFromHash( commandsHash );
+
+    _.each( commandsHash, function(fn, commandName) {
+      this.channel( channel ).commands.setHandler( commandName, _.bind(fn, this) );
+    }, this);
+
+    return this;
+
+  },
+
+  attachRequests: function( requestsHash, channel ) {
+
+    channel = channel || 'local';
+    requestsHash = this._methodsFromHash( requestsHash );
+
+    _.each( requestsHash, function(fn, requestName) {
+      this.channel( channel ).reqres.setHandler( requestName, _.bind(fn, this) );
+    }, this);
+
+    return this;
+
+  },
+
+  // Sets up the listeners on the channel by merging `this._defaultEvents`
+  // with `this.channelsHash` and applying them
+  _configChannel: function( channel ) {
+
+    if ( !channel ) {
+      return;
+    }
+
+    var
+    channelName = channel.channelName,
+    channelVent = channel.vent,
+    channelCommands = channel.commands,
+    channelReqres = channel.reqres;
+
+    var defaultVent, defaultCommands, defaultRequests, nVent, nCommands, nRequests;
+
+    // Get the default event hash
+    if ( this._defaultEvents && this._defaultEvents[channelName] ) {
+      var channelDefaults = this._defaultEvents[channelName];
+      defaultVent = channelDefaults.vent;
+      defaultCommands = channelDefaults.commands;
+      defaultRequests = channelDefaults.requests;
+    }
+    // Get events set up later; perhaps in an `initialize` function
+    if ( this.channelsHash ) {
+      nVent = this.channelsHash.vent;
+      nCommands = this.channelsHash.commands;
+      nRequests = this.channelsHash.requests;
+    }
+
+    var ventHash = _.extend({}, defaultVent, nVent );
+    var commandsHash = _.extend({}, defaultCommands, nCommands );
+    var requestsHash = _.extend({}, defaultRequests, nRequests );
+
+    this.attachVent( ventHash, channelName )
+        .attachCommands( commandsHash, channelName )
+        .attachRequests( requestsHash, channelName );
+
+  },
+
+  // Parse channel hashes of the form
+  // {
+  //   'someEvent'     : fnReference,
+  //   'someOtherEvent': 'fnName'
+  // }
+  // returning an object of the same form
+  // with actual function references (when they exist)
+  // instead of strings
+  _methodsFromHash: function( hash ) {
+
+    var newHash = {};
+    _.each( hash, function(fn, name) {
+      method = fn;
+      if ( !_.isFunction(method) ) {
+        method = this[method];
+      }
+      if ( !method ) {
+        return;
+      }
+      newHash[name] = method;
+    }, this);
+    return newHash;
+
+  },
+
+ };
 (function() {
 
   var application = {
@@ -246,7 +407,7 @@
 
 window.Puppets.Puppet = Marionette.Controller.extend({
 
-  // Used by the application shim to know 
+  // Used by the puppet shim to determine if it's really a puppet instance
   _isPuppet: true,
 
   constructor: function( name, app, options ){
@@ -256,12 +417,20 @@ window.Puppets.Puppet = Marionette.Controller.extend({
 
     options = options || {};
 
-    this._setLocalWreqr();
+    // Create the local and global channel, then configure them
+    var localChannel  = this.addChannel();
+    var globalChannel = this.addChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
+
+    // this._setLocalWreqr();
     this._setDefaultState();
     this._configRegion( options );
 
     Marionette.Controller.prototype.constructor.apply(this, Array.prototype.slice(arguments));
-    this._configEvents( options );
+
+    // Configure the local and global channels after the user is
+    // given the opportunity to add events in `initialize()`
+    this._configChannel( localChannel );
+    this._configChannel( globalChannel );
 
     // After the user's initialize function has run, set up the components
     this._components = {};
@@ -290,7 +459,7 @@ window.Puppets.Puppet = Marionette.Controller.extend({
 
   },
 
-  // Get / set components
+  // Get & set components
   component: function( name, object ) {
 
     // If there's no object, then retrieve the component
@@ -308,8 +477,10 @@ window.Puppets.Puppet = Marionette.Controller.extend({
 
   },
 
-  // Gives the component the local vent and access to the components
+  // Gives the component the local vent and access to the componecrnts
   _linkComponents: function() {
+
+    var localChannel = this.channel( 'local' );
 
     if (!this.components) {
       return;
@@ -319,9 +490,17 @@ window.Puppets.Puppet = Marionette.Controller.extend({
       // Give them names and access to the local wreqr channel
       component.componentName = name;
       component.puppetName = this.puppetName;
-      component.localVent = this.localVent;
-      component.localCommands = this.localCommands;
-      component.localReqres = this.localReqres;
+
+      // Set up the local channel on the component
+      _.extend(component, Backbone.Channel);
+      component.addChannel(
+        'local',
+        localChannel.vent,
+        localChannel.commands,
+        localChannel.reqres
+      );
+
+      // Attach the component
       this.component( name, component );
 
     }, this);
@@ -353,150 +532,41 @@ window.Puppets.Puppet = Marionette.Controller.extend({
   },
 
   // Render the region with the item view, if they exist
-  show: function() {
+  start: function() {
+    console.log('Ok');
     if ( this.region && this.itemView ) {
       this.region.show( this.itemView );
     }
   },
 
   // Close the region, if it exists
-  close: function() {
+  stop: function() {
     if ( this.region ) {
       this.region.close();
     }
-  }
-
-});
-
-
-/*
- *
- * This file configures the local & global wreqr channels
- * for this puppet, with defaults
- *
- */
-
- _.extend( window.Puppets.Puppet.prototype, {
-
-  // A mapping of the default local and global events for this puppet
-  // Overwrite them via window.Puppets.Puppet.prototype.[name]
-  _defaultLocalEvents: {
-    'open:region': '_startedPuppet',
-    'ready:region': '_readyPuppet',
-    'closing:region': '_stoppingPuppet',
-    'close:region': '_stoppedPuppet' 
-  },
-  _defaultLocalRequests: {},
-  _defaultLocalCommands: {},
-
-  _defaultGlobalCommands: {
-    'start' : 'start',
-    'stop': 'stop'
-  },
-  _defaultGlobalRequests: {
-    'isStarted' : '_isStarted',
-    'isReady'   : '_isReady',
-    'isStopping': '_isStopping',
-    'isStopped' : '_isStopped'
-  },
-  _defaultGlobalEvents: {},
-
-  // Processes the defaults above
-  _getDefaultNames: function( defaults ) {
-    var defaultNames = {};
-    var eventSuffix = ':puppets.'+this.puppetName;
-    _.each( defaults, function(fnName, eventName) {
-
-      eventName = eventName+eventSuffix;
-      defaultNames[eventName] = fnName;
-
-    }, this);
-    return defaultNames;
   },
 
-  _configEvents: function( options ) {
-
-    this._configLocalWreqr();
-    this._configGlobalWreqr( options );
-
-  },
-
-  _setLocalWreqr: function() {
-
-    this.localVent = new Backbone.Wreqr.EventAggregator();
-    this.localCommands = new Backbone.Wreqr.Commands();
-    this.localReqres = new Backbone.Wreqr.RequestResponse();
-
-  },
-
-  // Set up the local communication channel
-  _configLocalWreqr: function() {
-
-    var defaultEvents = _.extend( this._defaultLocalEvents, this.localEventsHash );
-    defaultEvents = this._methodsFromHash( defaultEvents );
-
-    var defaultRequests = _.extend( this._defaultLocalRequests, this.localRequestsHash );
-    defaultRequests = this._methodsFromHash( defaultRequests );
-
-    var defaultCommands = _.extend( this._defaultLocalCommands, this.localCommandsHash );
-    defaultCommands = this._methodsFromHash( defaultCommands );
-
-    _.each( defaultEvents, function( fn, eventName ) {
-      this.localVent.on( eventName, _.bind(fn, this) );
-    }, this);
-    _.each( defaultCommands, function( fn, eventName ) {
-      this.localCommands.setHandler( eventName, _.bind(fn, this) );
-    }, this);
-    _.each( defaultRequests, function( fn, eventName ) {
-      this.localReqres.setHandler( eventName, _.bind(fn, this) );
-    }, this);
-
-  },
-
-  // Set up the global wreqr object
-  _configGlobalWreqr: function( options ) {
-
-    var defaultCommands = this._getDefaultNames( this._defaultGlobalCommands );
-    var defaultRequests = this._getDefaultNames( this._defaultGlobalRequests );
-    var defaultEvents   = this._getDefaultNames( this._defaultGlobalEvents );
-
-    var globalCommands = _.extend( {}, defaultCommands, options.commands );
-    var globalRequests = _.extend( {}, defaultRequests, options.requests );
-    var globalEvents   = _.extend( {}, defaultEvents,  options.events );
-
-    var commandsFns = this._methodsFromHash( globalCommands );
-    var requestsFns = this._methodsFromHash( globalRequests );
-    var eventsFns   = this._methodsFromHash( globalEvents );
-
-    _.each( commandsFns, function( fn, eventName ) {
-      this.app.commands.setHandler( eventName, _.bind(fn, this) );
-    }, this);
-    _.each( requestsFns, function( fn, eventName ) {
-      this.app.reqres.setHandler( eventName, _.bind(fn, this) );
-    }, this);
-    _.each( eventsFns, function( fn, eventName ) {
-      this.app.vent.on( eventName, _.bind(fn, this) );
-    }, this);
-
-  },
-
-  // Take in a hash of eventName:functionName, and return a hash of
-  // eventName:actualFunction
-  _methodsFromHash: function( hash ) {
-
-    var newHash = {};
-    _.each( hash, function(fn, name) {
-      method = fn;
-      if ( !_.isFunction(method) ) {
-        method = this[method];
+  _defaultEvents: {
+    local: {
+      vent: {
+        'open:region': '_startedPuppet',
+        'ready:region': '_readyPuppet',
+        'closing:region': '_stoppingPuppet',
+        'close:region': '_stoppedPuppet'
       }
-      if ( !method ) {
-        return;
+    },
+    global: {
+      commands: {
+        'start': 'start',
+        'stop' : 'stop'
+      },
+      requests: {
+        'isStarted' : '_isStarted',
+        'isReady'   : '_isReady',
+        'isStopping': '_isStopping',
+        'isStopped' : '_isStopped'
       }
-      newHash[name] = method;
-    }, this);
-    return newHash;
-
+    }
   },
 
   // Adds the :puppets.[puppetName] suffix to an event type
@@ -504,8 +574,8 @@ window.Puppets.Puppet = Marionette.Controller.extend({
     return eventType + ':puppets.'+this.puppetName;
   },
 
-  // Share an event globally
-  emitGlobalEvent: function( eventName ) {
+  // Share a suffixed event globally
+  emit: function( eventName ) {
 
     arguments[0] = this._suffixEventName( eventName );
     this.app.vent.trigger.apply( this.app.vent, Array.prototype.slice.apply(arguments) );
@@ -513,6 +583,8 @@ window.Puppets.Puppet = Marionette.Controller.extend({
   }
 
 });
+
+_.extend( window.Puppets.Puppet.prototype, Backbone.Channel );
 
 
 /*

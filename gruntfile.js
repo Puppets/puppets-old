@@ -1,11 +1,11 @@
 module.exports = function( grunt ) {
 
   var fileList = [
+    'src/backbone.channel.js',
     'src/puppets.application.js',
     'src/puppets.region.js',
     'src/puppets.item-view.js',
     'src/puppets.puppet.js',
-    'src/puppets.events.js',
     'src/puppets.stateful.js'
   ];
 
