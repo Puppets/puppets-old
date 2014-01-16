@@ -25,5 +25,8 @@
     "backbone": "~1.1.0",
     "marionette": "~1.4.1",
     "jquery": "~2.0.3"
+  },
+  "dependencies": {
+    "backbone.wreqrchannel": "~0.2.0"
   }
 }

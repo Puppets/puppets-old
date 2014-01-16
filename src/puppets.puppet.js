@@ -8,10 +8,7 @@
  *
  */
 
-window.Puppets.Puppet = Marionette.Controller.extend({
-
-  // Used by the puppet shim to determine if it's really a puppet instance
-  _isPuppet: true,
+window.Puppets.Puppet = Marionette.Module.extend({
 
   constructor: function( name, app, options ){
 
@@ -20,9 +17,13 @@ window.Puppets.Puppet = Marionette.Controller.extend({
 
     options = options || {};
 
+    this.configureLocalChannel();
+    this.configureGlobalChannel();
+
     // Create the local and global channel, then configure them
-    var localChannel  = this.addChannel();
-    var globalChannel = this.addChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
+    var localChannel = new Backbone.WreqrChannel( name );
+    var localChannel  = this.attachChannel( 'local' );
+    var globalChannel = this.attachChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
 
     // this._setLocalWreqr();
     this._setDefaultState();
@@ -32,8 +33,8 @@ window.Puppets.Puppet = Marionette.Controller.extend({
 
     // Configure the local and global channels after the user is
     // given the opportunity to add events in `initialize()`
-    this._configChannel( localChannel );
-    this._configChannel( globalChannel );
+    this.startChannel( localChannel );
+    this.startChannel( globalChannel );
 
     // After the user's initialize function has run, set up the components
     this._components = {};
@@ -41,6 +42,18 @@ window.Puppets.Puppet = Marionette.Controller.extend({
     this.configureComponents( options );
 
   },
+
+  configureLocalChannel: function() {
+    var localChannel = new Backbone.WreqrChannel( name );
+    this.attachChannel( localChannel );
+  },
+
+  configureGlobalChannel: function() {
+    var globalChannel = this.attachChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
+
+  },
+
+
 
   // This function is called after the components have been set up.
   // Overwrite it to pass options to the components
@@ -95,14 +108,13 @@ window.Puppets.Puppet = Marionette.Controller.extend({
       component.puppetName = this.puppetName;
 
       // Set up the local channel on the component
-      _.extend(component, Backbone.Channel);
-      component.addChannel(
+      _.extend(component, Backbone.WreqrChannel);
+      component.attachChannel(
         'local',
         localChannel.vent,
         localChannel.commands,
         localChannel.reqres
       );
-
       // Attach the component
       this.component( name, component );
 
@@ -186,5 +198,6 @@ window.Puppets.Puppet = Marionette.Controller.extend({
 
 });
 
-_.extend( window.Puppets.Puppet.prototype, Backbone.Channel );
+// Make sure that all Puppets are WreqrStations
+_.extend( window.Puppets.Puppet.prototype, Backbone.WreqrStation );
 

@@ -1,164 +1,228 @@
 /*
  * Backbone.Channel
- * A means to organize Wreqr instances into channels
+ * An organizational system for handling multiple Wreqr instances
  *
  */
 
- Backbone.Channel = {
+// Set up WreqrChannel for the appropriate environment
+(function(root, factory) {
 
-  // Set up a channel on this object, defaulting to a new `local` channel
-  // Returns the newly created channel
-  addChannel: function( channelName, vent, commands, reqres ) {
+  // AMD 
+  if (typeof define === 'function' && define.amd) {
+    define(['underscore', 'backbone', 'exports'], function(_, backbone, exports) {
+      // Export global even in AMD case in case this script is loaded with
+      // others that may still expect a global Backbone.
+      root.Backbone = factory(root, exports, _, backbone);
+    });
 
-    channelName  = channelName  || 'local';
-
-    vent     = vent     || new Backbone.Wreqr.EventAggregator();
-    commands = commands || new Backbone.Wreqr.Commands();
-    reqres   = reqres   || new Backbone.Wreqr.RequestResponse();
-
-    this._channels = this._channels || {};
-
-    // Overwrites any existing channel. Consider memory leaks?
-    this._channels[channelName] = {
-      channelName: channelName,
-      vent: vent,
-      commands: commands,
-      reqres: reqres
-    };
-
-    return this._channels[ channelName ];
-
-  },
-
-  // Safely remove a channel
-  removeChannel: function( channelName ) {
-
-    var channel = this.channel( channelName );
-
-    if ( !channel ) {
-      return;
-    }
-
-    channel.vent.off();
-    channel.reqres.removeAllHandlers();
-    channel.commands.removeAllHandlers();
-    delete channel;
-
-  },
-
-  // Return the channel so you can emit events like
-  // this.channel('global').vent('eventName')
-  channel: function( name ) {
-    return this._channels[ name ];
-  },
-
-  // Attach events from a hash to a channel, defaulting to local
-  attachVent: function( vents, channel ) {
-
-    channel  = channel || 'local';
-    vents = this._methodsFromHash( vents );
-
-    _.each( vents, function(fn, ventName) {
-      this.channel( channel ).vent.on( ventName, _.bind(fn, this) );
-    }, this);
-
-    return this;
-
-  },
-
-  // Attach commands from a hash to a channel, defaulting to local
-  attachCommands: function( commandsHash, channel ) {
-
-    channel = channel || 'local';
-    commandsHash = this._methodsFromHash( commandsHash );
-
-    _.each( commandsHash, function(fn, commandName) {
-      this.channel( channel ).commands.setHandler( commandName, _.bind(fn, this) );
-    }, this);
-
-    return this;
-
-  },
-
-  attachRequests: function( requestsHash, channel ) {
-
-    channel = channel || 'local';
-    requestsHash = this._methodsFromHash( requestsHash );
-
-    _.each( requestsHash, function(fn, requestName) {
-      this.channel( channel ).reqres.setHandler( requestName, _.bind(fn, this) );
-    }, this);
-
-    return this;
-
-  },
-
-  // Sets up the listeners on the channel by merging `this._defaultEvents`
-  // with `this.channelsHash` and applying them
-  _configChannel: function( channel ) {
-
-    if ( !channel ) {
-      return;
-    }
+  // Node / CommonJS
+  } else if (typeof exports !== 'undefined') {
 
     var
-    channelName = channel.channelName,
-    channelVent = channel.vent,
-    channelCommands = channel.commands,
-    channelReqres = channel.reqres;
+    _ = require('underscore'),
+    Backbone = require('backbone');
 
-    var defaultVent, defaultCommands, defaultRequests, nVent, nCommands, nRequests;
+    factory(root, exports, _, Backbone);
 
-    // Get the default event hash
-    if ( this._defaultEvents && this._defaultEvents[channelName] ) {
-      var channelDefaults = this._defaultEvents[channelName];
-      defaultVent = channelDefaults.vent;
-      defaultCommands = channelDefaults.commands;
-      defaultRequests = channelDefaults.requests;
-    }
-    // Get events set up later; perhaps in an `initialize` function
-    if ( this.channelsHash ) {
-      nVent = this.channelsHash.vent;
-      nCommands = this.channelsHash.commands;
-      nRequests = this.channelsHash.requests;
-    }
+  // Otherwise, as a global variable
+  } else {
+    root.Backbone = root._.extend( root.Backbone, factory(root, {}, root._, root.Backbone) );
+  } 
 
-    var ventHash = _.extend({}, defaultVent, nVent );
-    var commandsHash = _.extend({}, defaultCommands, nCommands );
-    var requestsHash = _.extend({}, defaultRequests, nRequests );
+}(this, function(root, WreqrChannel, _, Backbone) {
 
-    this.attachVent( ventHash, channelName )
-        .attachCommands( commandsHash, channelName )
-        .attachRequests( requestsHash, channelName );
+  var Wreqr = Backbone.Wreqr;
 
-  },
+  Backbone.WreqrChannel = {
 
-  // Parse channel hashes of the form
-  // {
-  //   'someEvent'     : fnReference,
-  //   'someOtherEvent': 'fnName'
-  // }
-  // returning an object of the same form
-  // with actual function references (when they exist)
-  // instead of strings
-  _methodsFromHash: function( hash ) {
+    // Set up a channel on this object, defaulting to a new `local` channel
+    // Returns the newly created channel
+    attachChannel: function( channelName, vent, commands, reqres ) {
 
-    var newHash = {};
-    _.each( hash, function(fn, name) {
-      method = fn;
-      if ( !_.isFunction(method) ) {
-        method = this[method];
+      channelName  = channelName  || 'local';
+
+      vent     = vent     || new Wreqr.EventAggregator();
+      commands = commands || new Wreqr.Commands();
+      reqres   = reqres   || new Wreqr.RequestResponse();
+
+      this._channels = this._channels || {};
+
+      this._channels[channelName] = {
+        channelName: channelName,
+        vent: vent,
+        commands: commands,
+        reqres: reqres
+      };
+
+      return this._channels[ channelName ];
+
+    },
+
+    resetChannel: function( channelName ) {
+
+      // Reset all channels if no name is supplied
+      if ( !channelName ) {
+        _.each( this._channels, function(channel) {
+          console.log('Resetting', channel);
+          this.resetChannel( channel.channelName );
+        }, this);
       }
-      if ( !method ) {
+
+      // Otherwise, reset the specified channel
+      var channel = this.channel( channelName );
+
+      if ( !channel ) {
         return;
       }
-      newHash[name] = method;
-    }, this);
-    return newHash;
 
-  },
+      channel.vent.off();
+      channel.reqres.removeAllHandlers();
+      channel.commands.removeAllHandlers();
 
- };
+    },
+
+    // Safely remove a channel. Pass `true` to
+    // remove all listeners from the channel
+    detachChannel: function( channelName, off ) {
+
+      // Detach all channels if no `channelName` is passed
+      if ( !channelName ) {
+        _.each( this._channels, function(channel) {
+          this.detachChannel( channel.channelName, off );
+        }, this);
+      }
+
+      var channel = this.channel( channelName );
+
+      if ( !channel ) {
+        return;
+      }
+
+      if ( off ) {
+        this.resetChannel( channelName );
+      }
+
+      delete this._channels[ channelName ];
+
+    },
+
+    // Return the channel so you can emit events like
+    // this.channel('global').vent('eventName')
+    channel: function( name ) {
+      return this._channels[ name ];
+    },
+
+    // Attach events from a hash to a channel, defaulting to local
+    connectEvents: function( vents, channel ) {
+
+      channel  = channel || 'local';
+      vents = this._methodsFromHash( vents );
+
+      _.each( vents, function(fn, ventName) {
+        this.channel( channel ).vent.on( ventName, _.bind(fn, this) );
+      }, this);
+
+      return this;
+
+    },
+
+    // Attach commands from a hash to a channel, defaulting to local
+    connectCommands: function( commandsHash, channel ) {
+
+      channel = channel || 'local';
+      commandsHash = this._methodsFromHash( commandsHash );
+
+      _.each( commandsHash, function(fn, commandName) {
+        this.channel( channel ).commands.setHandler( commandName, _.bind(fn, this) );
+      }, this);
+
+      return this;
+
+    },
+
+    connectRequests: function( requestsHash, channel ) {
+
+      channel = channel || 'local';
+      requestsHash = this._methodsFromHash( requestsHash );
+
+      _.each( requestsHash, function(fn, requestName) {
+        this.channel( channel ).reqres.setHandler( requestName, _.bind(fn, this) );
+      }, this);
+
+      return this;
+
+    },
+
+    // Sets up the listeners on the channel by merging `this._defaultEvents`
+    // with `this.channelsHash` and applying them
+    _configChannel: function( channel ) {
+
+      if ( !channel ) {
+        return;
+      }
+
+      var
+      channelName = channel.channelName,
+      channelVent = channel.vent,
+      channelCommands = channel.commands,
+      channelReqres = channel.reqres;
+
+      var defaultVent, defaultCommands, defaultRequests, nVent, nCommands, nRequests;
+
+      // Get the default event hash
+      if ( this._defaultEvents && this._defaultEvents[channelName] ) {
+        var channelDefaults = this._defaultEvents[channelName];
+        defaultVent = channelDefaults.vent;
+        defaultCommands = channelDefaults.commands;
+        defaultRequests = channelDefaults.requests;
+      }
+      // Get events set up later; perhaps in an `initialize` function
+      if ( this.channelsHash ) {
+        nVent = this.channelsHash.vent;
+        nCommands = this.channelsHash.commands;
+        nRequests = this.channelsHash.requests;
+      }
+
+      var ventHash = _.extend({}, defaultVent, nVent );
+      var commandsHash = _.extend({}, defaultCommands, nCommands );
+      var requestsHash = _.extend({}, defaultRequests, nRequests );
+
+      this.connectEvents( ventHash, channelName )
+          .connectCommands( commandsHash, channelName )
+          .connectRequests( requestsHash, channelName );
+
+    },
+
+    // Parse channel hashes of the form
+    // {
+    //   'someEvent'     : fnReference,
+    //   'someOtherEvent': 'fnName'
+    // }
+    // returning an object of the same form
+    // with actual function references (when they exist)
+    // instead of strings
+    _methodsFromHash: function( hash ) {
+
+      var newHash = {};
+      _.each( hash, function(fn, name) {
+        method = fn;
+        if ( !_.isFunction(method) ) {
+          method = this[method];
+        }
+        if ( !method ) {
+          return;
+        }
+        newHash[name] = method;
+      }, this);
+      return newHash;
+
+    }
+
+  };
+
+  return Backbone.WreqrChannel;
+
+}));
 (function() {
 
   var application = {
@@ -418,8 +482,8 @@ window.Puppets.Puppet = Marionette.Controller.extend({
     options = options || {};
 
     // Create the local and global channel, then configure them
-    var localChannel  = this.addChannel();
-    var globalChannel = this.addChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
+    var localChannel  = this.attachChannel();
+    var globalChannel = this.attachChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
 
     // this._setLocalWreqr();
     this._setDefaultState();
@@ -492,8 +556,8 @@ window.Puppets.Puppet = Marionette.Controller.extend({
       component.puppetName = this.puppetName;
 
       // Set up the local channel on the component
-      _.extend(component, Backbone.Channel);
-      component.addChannel(
+      _.extend(component, Backbone.WreqrChannel);
+      component.attachChannel(
         'local',
         localChannel.vent,
         localChannel.commands,
@@ -533,7 +597,6 @@ window.Puppets.Puppet = Marionette.Controller.extend({
 
   // Render the region with the item view, if they exist
   start: function() {
-    console.log('Ok');
     if ( this.region && this.itemView ) {
       this.region.show( this.itemView );
     }
@@ -584,7 +647,7 @@ window.Puppets.Puppet = Marionette.Controller.extend({
 
 });
 
-_.extend( window.Puppets.Puppet.prototype, Backbone.Channel );
+_.extend( window.Puppets.Puppet.prototype, Backbone.WreqrChannel );
 
 
 /*

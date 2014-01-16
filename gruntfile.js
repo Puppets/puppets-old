@@ -1,7 +1,7 @@
 module.exports = function( grunt ) {
 
   var fileList = [
-    'src/backbone.channel.js',
+    'src/backbone.wreqr-channel.js',
     'src/puppets.application.js',
     'src/puppets.region.js',
     'src/puppets.item-view.js',
