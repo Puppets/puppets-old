@@ -8,9 +8,15 @@
   "homepage": "https://github.com/Puppets/puppets",
   "main": "build/puppets.js",
   "keywords": [
-    "marionette",
+    "puppet",
     "puppets",
-    "modules"
+    "puppets.js",
+    "modules",
+    "components",
+    "marionette.js",
+    "marionette",
+    "backbone",
+    "backbone.js"
   ],
   "license": "MIT",
   "ignore": [
