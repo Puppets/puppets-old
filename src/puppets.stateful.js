@@ -5,7 +5,7 @@
  *
  */
 
- var window.Stateful = {
+ window.Stateful = {
 
   _currentState: {},
 

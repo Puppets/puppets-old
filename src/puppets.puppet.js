@@ -21,20 +21,21 @@ window.Puppets.Puppet = Marionette.Module.extend({
     this.configureGlobalChannel();
 
     // Create the local and global channel, then configure them
-    var localChannel = new Backbone.WreqrChannel( name );
-    var localChannel  = this.attachChannel( 'local' );
-    var globalChannel = this.attachChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
+    var localChannel = new Backbone.WreqrChannel( 'local' );
+    var globalChannel = new Backbone.WreqrChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
+    var localChannel  = this.attachChannel( localChannel );
+    var globalChannel = this.attachChannel( globalChannel );
 
-    // this._setLocalWreqr();
-    this._setDefaultState();
+    this.fsm = new Puppets.Fsm();
+
     this._configRegion( options );
 
     Marionette.Controller.prototype.constructor.apply(this, Array.prototype.slice(arguments));
 
     // Configure the local and global channels after the user is
     // given the opportunity to add events in `initialize()`
-    this.startChannel( localChannel );
-    this.startChannel( globalChannel );
+    // this.startChannel( localChannel );
+    // this.startChannel( globalChannel );
 
     // After the user's initialize function has run, set up the components
     this._components = {};
@@ -52,8 +53,6 @@ window.Puppets.Puppet = Marionette.Module.extend({
     var globalChannel = this.attachChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
 
   },
-
-
 
   // This function is called after the components have been set up.
   // Overwrite it to pass options to the components

@@ -1,13 +1,13 @@
 /*
- * Backbone.Channel
+ * Backbone.WreqrChannel
  * An organizational system for handling multiple Wreqr instances
  *
  */
 
-// Set up WreqrChannel for the appropriate environment
+// Set this up for the appropriate environment
 (function(root, factory) {
 
-  // AMD 
+  // AMD
   if (typeof define === 'function' && define.amd) {
     define(['underscore', 'backbone', 'exports'], function(_, backbone, exports) {
       // Export global even in AMD case in case this script is loaded with
@@ -31,167 +31,86 @@
 
 }(this, function(root, WreqrChannel, _, Backbone) {
 
-  var Wreqr = Backbone.Wreqr;
+  'use strict';
 
-  Backbone.WreqrChannel = {
+  var WreqrExtension = {};
 
-    // Set up a channel on this object, defaulting to a new `local` channel
-    // Returns the newly created channel
-    attachChannel: function( channelName, vent, commands, reqres ) {
+  // The channel object. All that it does is hold an instance of each messaging system
+  WreqrExtension.WreqrChannel = function( name, vent, commands, reqres ) {
 
-      channelName  = channelName  || 'local';
+    // Channels need a name
+    if ( !name ) {
+      return;
+    }
 
-      vent     = vent     || new Wreqr.EventAggregator();
-      commands = commands || new Wreqr.Commands();
-      reqres   = reqres   || new Wreqr.RequestResponse();
+    var
+    createNew = false,
+    w = Backbone.Wreqr;
 
-      this._channels = this._channels || {};
+    // Instantiate new messaging systems if all 3 aren't passed,
+    // or if they aren't instances of the messaging systems.
+    if ( !vent || !commands || !reqres  ) {
+      createNew = true;
+    } else if ( !(vent instanceof w.EventAggregator) ) {
+      createNew = true;
+    } else if ( !(commands instanceof w.Commands) ) {
+      createNew = true;
+    } else if ( !(reqres instanceof w.RequestResponse) ) {
+      createNew = true;
+    }
 
-      this._channels[channelName] = {
-        channelName: channelName,
-        vent: vent,
-        commands: commands,
-        reqres: reqres
-      };
+    if ( createNew ) {
+      vent = new w.EventAggregator();
+      reqres = new w.RequestResponse();
+      commands = new w.Commands();
+    }
 
-      return this._channels[ channelName ];
+    this.vent     = vent;
+    this.reqres   = reqres;
+    this.commands = commands;
+    this.channelName = name;
 
-    },
+  };
 
-    resetChannel: function( channelName ) {
+  _.extend( WreqrExtension.WreqrChannel.prototype, {
 
-      // Reset all channels if no name is supplied
-      if ( !channelName ) {
-        _.each( this._channels, function(channel) {
-          console.log('Resetting', channel);
-          this.resetChannel( channel.channelName );
-        }, this);
-      }
+    // Remove all handlers from the messaging systems of this channel
+    reset: function() {
 
-      // Otherwise, reset the specified channel
-      var channel = this.channel( channelName );
-
-      if ( !channel ) {
-        return;
-      }
-
-      channel.vent.off();
-      channel.reqres.removeAllHandlers();
-      channel.commands.removeAllHandlers();
-
-    },
-
-    // Safely remove a channel. Pass `true` to
-    // remove all listeners from the channel
-    detachChannel: function( channelName, off ) {
-
-      // Detach all channels if no `channelName` is passed
-      if ( !channelName ) {
-        _.each( this._channels, function(channel) {
-          this.detachChannel( channel.channelName, off );
-        }, this);
-      }
-
-      var channel = this.channel( channelName );
-
-      if ( !channel ) {
-        return;
-      }
-
-      if ( off ) {
-        this.resetChannel( channelName );
-      }
-
-      delete this._channels[ channelName ];
-
-    },
-
-    // Return the channel so you can emit events like
-    // this.channel('global').vent('eventName')
-    channel: function( name ) {
-      return this._channels[ name ];
-    },
-
-    // Attach events from a hash to a channel, defaulting to local
-    connectEvents: function( vents, channel ) {
-
-      channel  = channel || 'local';
-      vents = this._methodsFromHash( vents );
-
-      _.each( vents, function(fn, ventName) {
-        this.channel( channel ).vent.on( ventName, _.bind(fn, this) );
-      }, this);
-
+      this.vent.off();
+      this.vent.stopListening();
+      this.reqres.removeAllHandlers();
+      this.commands.removeAllHandlers();
       return this;
 
     },
 
-    // Attach commands from a hash to a channel, defaulting to local
-    connectCommands: function( commandsHash, channel ) {
+    // Connect a hash of events; one for each messaging system
+    connectEvents: function( hash ) {
+      this._connect( 'vent', hash );
+      return this;
+    },
+    connectCommands: function( hash ) {
+      this._connect( 'commands', hash );
+      return this;
+    },
+    connectRequests: function( hash ) {
+      this._connect( 'reqres', hash );
+      return this;
+    },
 
-      channel = channel || 'local';
-      commandsHash = this._methodsFromHash( commandsHash );
+    // Attach the handlers to a given message system `type`
+    _connect: function( type, hash ) {
 
-      _.each( commandsHash, function(fn, commandName) {
-        this.channel( channel ).commands.setHandler( commandName, _.bind(fn, this) );
+      if ( !hash ) { return; }
+      hash = this._methodsFromHash( hash );
+      var method = ( type === 'vent' ) ? 'on' : 'setHandler';
+      _.each( hash, function(fn, name) {
+        this[type][method]( name, _.bind(fn, this) );
       }, this);
 
-      return this;
-
     },
 
-    connectRequests: function( requestsHash, channel ) {
-
-      channel = channel || 'local';
-      requestsHash = this._methodsFromHash( requestsHash );
-
-      _.each( requestsHash, function(fn, requestName) {
-        this.channel( channel ).reqres.setHandler( requestName, _.bind(fn, this) );
-      }, this);
-
-      return this;
-
-    },
-
-    // Sets up the listeners on the channel by merging `this._defaultEvents`
-    // with `this.channelsHash` and applying them
-    _configChannel: function( channel ) {
-
-      if ( !channel ) {
-        return;
-      }
-
-      var
-      channelName = channel.channelName,
-      channelVent = channel.vent,
-      channelCommands = channel.commands,
-      channelReqres = channel.reqres;
-
-      var defaultVent, defaultCommands, defaultRequests, nVent, nCommands, nRequests;
-
-      // Get the default event hash
-      if ( this._defaultEvents && this._defaultEvents[channelName] ) {
-        var channelDefaults = this._defaultEvents[channelName];
-        defaultVent = channelDefaults.vent;
-        defaultCommands = channelDefaults.commands;
-        defaultRequests = channelDefaults.requests;
-      }
-      // Get events set up later; perhaps in an `initialize` function
-      if ( this.channelsHash ) {
-        nVent = this.channelsHash.vent;
-        nCommands = this.channelsHash.commands;
-        nRequests = this.channelsHash.requests;
-      }
-
-      var ventHash = _.extend({}, defaultVent, nVent );
-      var commandsHash = _.extend({}, defaultCommands, nCommands );
-      var requestsHash = _.extend({}, defaultRequests, nRequests );
-
-      this.connectEvents( ventHash, channelName )
-          .connectCommands( commandsHash, channelName )
-          .connectRequests( requestsHash, channelName );
-
-    },
 
     // Parse channel hashes of the form
     // {
@@ -203,7 +122,7 @@
     // instead of strings
     _methodsFromHash: function( hash ) {
 
-      var newHash = {};
+      var newHash = {}, method;
       _.each( hash, function(fn, name) {
         method = fn;
         if ( !_.isFunction(method) ) {
@@ -218,49 +137,126 @@
 
     }
 
+  });
+
+  WreqrExtension.WreqrStation = {
+
+    // Attach a channel to this station
+    attachChannel: function( channel ) {
+
+      if ( !channel || !(channel instanceof Backbone.WreqrChannel) ) {
+        return;
+      }
+
+      // Ensure the channels container
+      this._channels = this._channels || [];
+
+      if ( !_.contains(this._channels, channel) ) {
+        this._channels.push( channel );
+      }
+
+      return channel;
+
+    },
+
+    // Safely remove a channel. Pass `true` to
+    // remove all listeners from the channel
+    detachChannel: function( channelName, off ) {
+
+      // There are no channels set up; ignore the request
+      if ( !this._channels || !channelName ) {
+        return;
+      }
+
+      // Get the channel by name
+      var channel = this.channel( channelName );
+
+      if ( !channel ) {
+        return;
+      }
+
+      // Reset the channel if `off` is passed as true
+      if ( off === true ) {
+        channel.reset();
+      }
+
+      // Remove the channel, then return it
+      this._channels = _.without( this._channels, channel );
+
+      return channel;
+
+    },
+
+    detachAllChannels: function( off ) {
+
+      if ( !this._channels ) {
+        return;
+      }
+      var channelName;
+      _.each( this._channels, function(channel) {
+        channelName = channel.channelName;
+        this.detachChannel( channelName, off );
+      }, this);
+
+    },
+
+    // Return a channel by name
+    channel: function( channelName ) {
+      if ( !this._channels ) {
+        return;
+      }
+      return _.findWhere( this._channels, { channelName: channelName } );
+    },
+
+    // Determine if you have a channel by the passed-in name
+    hasChannel: function( channelName ) {
+
+      if ( !this._channels ) {
+        return;
+      }
+      var length = _.findWhere( this._channels, { channelName: channelName } );
+
+      return length ? true : false;
+    }
+
   };
 
-  return Backbone.WreqrChannel;
+  return WreqrExtension;
 
 }));
 (function() {
 
-  var application = {
-
-    _puppets: {},
-
-    puppets: function( name, puppet, options ) {
-
-      var module;
-
-      // Get the puppet if it exists
-      if ( this._hasPuppet(name) ) {
-        module = this._getPuppet( name );
-      }
-      // Otherwise add a new one
-      else if ( puppet && puppet.prototype._isPuppet ) {
-        module = new puppet( name, this, options );
-        this._puppets[name] = module;
-      }
-
-      return module;
+  var Fsm = machina.Fsm.extend({
+    initialize: function() {
+      console.log('Init');
+      // do stuff here if you want to perform more setup work
+      // this executes prior to any state transitions or handler invocations
     },
-
-    _hasPuppet: function( name ) {
-      return _.has( this._puppets, name );
-    },
-
-    _getPuppet: function( name ) {
-      return this._puppets[name];
+    initialState: "stopped",
+    states: {
+      stopped: {
+        _onEnter: function() {
+          console.log('Stopped');
+        },
+        "pasta": function() {
+          console.log('Stopped is handling this pasta');
+        }
+      },
+      started: {
+        _onEnter: function() {
+          console.log('Started');
+        },
+        "truck": function() {
+          console.log('Started is handling this truck');
+        }
+      }
     }
+  });
 
-  }
-
-  Marionette.Application.prototype = _.extend( Marionette.Application.prototype, application );
+  window.Puppets = window.Puppets || {};
+  window.Puppets.Fsm = Fsm;
 
 })();
-
-
 // The base controller from which all puppets extend
 // This ties all of the pieces of the puppet together, and communicates with the outside world
 // via the application's wreqr
@@ -469,10 +465,7 @@
  *
  */
 
-window.Puppets.Puppet = Marionette.Controller.extend({
-
-  // Used by the puppet shim to determine if it's really a puppet instance
-  _isPuppet: true,
+window.Puppets.Puppet = Marionette.Module.extend({
 
   constructor: function( name, app, options ){
 
@@ -481,25 +474,40 @@ window.Puppets.Puppet = Marionette.Controller.extend({
 
     options = options || {};
 
-    // Create the local and global channel, then configure them
-    var localChannel  = this.attachChannel();
-    var globalChannel = this.attachChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
+    this.configureLocalChannel();
+    this.configureGlobalChannel();
 
-    // this._setLocalWreqr();
-    this._setDefaultState();
+    // Create the local and global channel, then configure them
+    var localChannel = new Backbone.WreqrChannel( 'local' );
+    var globalChannel = new Backbone.WreqrChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
+    var localChannel  = this.attachChannel( localChannel );
+    var globalChannel = this.attachChannel( globalChannel );
+
+    this.fsm = new Puppets.Fsm();
+
     this._configRegion( options );
 
     Marionette.Controller.prototype.constructor.apply(this, Array.prototype.slice(arguments));
 
     // Configure the local and global channels after the user is
     // given the opportunity to add events in `initialize()`
-    this._configChannel( localChannel );
-    this._configChannel( globalChannel );
+    // this.startChannel( localChannel );
+    // this.startChannel( globalChannel );
 
     // After the user's initialize function has run, set up the components
     this._components = {};
     this._linkComponents();
     this.configureComponents( options );
+
+  },
+
+  configureLocalChannel: function() {
+    var localChannel = new Backbone.WreqrChannel( name );
+    this.attachChannel( localChannel );
+  },
+
+  configureGlobalChannel: function() {
+    var globalChannel = this.attachChannel( 'global', this.app.vent, this.app.commands, this.app.reqres );
 
   },
 
@@ -563,7 +571,6 @@ window.Puppets.Puppet = Marionette.Controller.extend({
         localChannel.commands,
         localChannel.reqres
       );
-
       // Attach the component
       this.component( name, component );
 
@@ -647,69 +654,6 @@ window.Puppets.Puppet = Marionette.Controller.extend({
 
 });
 
-_.extend( window.Puppets.Puppet.prototype, Backbone.WreqrChannel );
+// Make sure that all Puppets are WreqrStations
+_.extend( window.Puppets.Puppet.prototype, Backbone.WreqrStation );
 
-
-/*
- * 
- * Set up the states for the puppet & the stateful API
- *
- */
-
- _.extend( window.Puppets.Puppet.prototype, {
-
-  _states: {
-    _stoppedState: {
-      started: false,
-      ready: false,
-      stopped: true,
-      stopping: false
-    },
-
-    _stoppingState: {
-      started: true,
-      ready: false,
-      stopping: true,
-      stopped: false
-    },
-
-    _readyState: {
-      started: true,
-      ready: true,
-      stopping: false,
-      stopped: false
-    },
-
-    _startedState: {
-      started: true,
-      ready: false,
-      stopping: false,
-      stopped: false
-    }
-  },
-
-  defaultState: 'stopped',
-
-  _setDefaultState: function() {
-    this._changeState( this.defaultState );
-  },
-
-  _changeState: function( state ) {
-    var newState = this._states[ '_' + state + 'State' ];
-    _.extend(this, newState);
-  },
-
-  _isStarted: function() {
-    return this.started;
-  },
-  _isStopped: function() {
-    return this.stopped;
-  },
-  _isReady: function() {
-    return this.ready;
-  },
-  _isStopping: function() {
-    return this.stopping;
-  }
-
- });

@@ -17,16 +17,16 @@
     "**/.*",
     "node_modules",
     "bower_components",
-    "test",
-    "tests"
+    "test"
   ],
   "devDependencies": {
     "underscore": "~1.5.2",
     "backbone": "~1.1.0",
     "marionette": "~1.4.1",
-    "jquery": "~2.0.3"
+    "jquery": "~2.0.3",
+    "machina": "~0.3.4"
   },
   "dependencies": {
-    "backbone.wreqr-channel": "~0.3.1"
+    "backbone.wreqr-channel": "~0.3.1",
   }
 }

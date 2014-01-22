@@ -1,12 +1,11 @@
 module.exports = function( grunt ) {
 
   var fileList = [
-    'src/backbone.wreqr-channel.js',
-    'src/puppets.application.js',
+    'bower_components/backbone.wreqr-channel/backbone.wreqr-channel.js',
+    'src/machina.base.js',
     'src/puppets.region.js',
     'src/puppets.item-view.js',
-    'src/puppets.puppet.js',
-    'src/puppets.stateful.js'
+    'src/puppets.puppet.js'
   ];
 
   grunt.initConfig({
