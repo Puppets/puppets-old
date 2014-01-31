@@ -22,11 +22,12 @@
   "devDependencies": {
     "underscore": "~1.5.2",
     "backbone": "~1.1.0",
-    "marionette": "~1.4.1",
-    "jquery": "~2.0.3",
-    "machina": "~0.3.4"
+    "marionette": "~1.5.1",
+    "jquery": "~2.0.3"
   },
   "dependencies": {
-    "backbone.wreqr-channel": "~0.3.1",
+    "machina": "~0.3.4",
+    "backbone.wreqr-radio": "~1.0.0",
+    "machina.wreqr-radio": "~1.0.0"
   }
 }

@@ -7,7 +7,10 @@
   app.addInitializer(function() {
 
     app.module("TestPuppet", {
-      moduleClass: Puppets.Puppet
+      moduleClass: Puppets.Puppet,
+      initialize: function( option ) {
+        
+      }
     });
 
   });
