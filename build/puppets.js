@@ -228,6 +228,10 @@
       stopped: {
         _onEnter: function() {
           console.log('Stopped');
+        },
+        'some:event': 'started',
+        'lala': function() {
+          console.log( 'RECEIVED' );
         }
       },
       started: {
@@ -260,13 +264,9 @@ window.Puppets.Puppet = Marionette.Module.extend({
 
     this.app = app;
     this.puppetName = puppetName;
+    this.statesConfig = {};
 
     options = options || {};
-
-    // Start up the fsm
-    this.fsm = new Puppets.Fsm({
-      namespace: 'Puppets.' + this.puppetName
-    });
 
     // Attach references to useful channels
     this.channels = {
@@ -276,18 +276,157 @@ window.Puppets.Puppet = Marionette.Module.extend({
     };
 
     Marionette.Module.prototype.constructor.apply( this, Array.prototype.slice.call(arguments, 0) );
-    this._afterInit();
+    this._afterInit( options );
 
   },
 
-  // This code runs after the user's extended Puppet is defined. Use this as an opportunity to handle that
-  // Puppet's options
-  _afterInit: function() {
+  _setFsmStates: function( options ) {
 
-    // this._linkComponents();
+    var events     = options && options.events;
+    var methodsMap = this.methodsMap;
+    var transitionsMap = this.transitionsMap;
+    var controller = this.component( 'controller' );
+    var associatedStates;
 
-    // Configure the local and global channels after the user is
-    // given the opportunity to add events in `initialize()`
+    // Only continue if we have events set up by the user,
+    // and events mapped to states in the puppet,
+    // and a controller set up for this puppet
+    if ( !events || !methodsMap || !transitionsMap || !controller ) {
+      return;
+    }
+
+    // Loop through the events/actions hash that the user has passed us
+    _.each( events, function( action, eventName ) {
+
+      var stateValue;
+      var mapValue;
+
+      if ( action.type === 'transition' ) {
+        stateValue = action.newState;
+        mapValue = transitionsMap[ stateValue ];
+        console.log( action, stateValue, mapValue );
+        this._attachTransitionsToStates( mapValue, eventName, stateValue );
+      }
+      else if ( action.type === 'method' ) {
+        stateValue = action.newState;
+        mapKey = transitionsMap[ stateValue ];
+        // this._attachTransitionsToStates( transitionsMap, eventName, stateValue );
+
+      }
+      
+      this._attachActionsToStates( methodsMap, eventName, action );
+
+    }, this);
+
+  },
+
+  _attachTransitionsToStates: function( mapValue, eventName, newState ) {
+
+    // The new state needs to be a string
+    if ( !_.isString( newState ) ) {
+      this._throw( 'States must be a string. "' + newState + '" is not a string in Puppet.' + this.puppetName );
+      return;
+    }
+
+    // You need to be able to transition to the state
+    else if ( !mapValue ) {
+      this._throw( 'The state "' + mapValue + '" can not be transitioned to in Puppet.' + this.puppetName );
+      return;
+    }
+
+    // The state needs to be a valid state
+    else if ( !_.contains(this.states, newState) ) {
+      this._throw( '"' + newState + '" is not a valid state for Puppet.' + this.puppetName );
+    }
+
+    if ( mapValue === '*' ) {
+      console.log( newState + " is transitioned to from all states" );
+    }
+
+    if ( _.isString(mapValue) ) {
+      this._attachTransitionToState( mapValue, newState, eventName );
+    }
+
+    else if ( _.isArray(mapValue) ) {
+      _.each( mapValue, function(fromState) {
+        this._attachTransitionToState( fromState, newState, eventName );
+      }, this);
+    }
+
+  },
+
+  _attachTransitionToState: function( fromState, toState, eventName ) {
+
+    this.statesConfig[ fromState ] = this.states[ fromState ] || {};
+    this.statesConfig[ fromState ][ eventName ] = toState;
+
+  },
+
+  _attachMethodToState: function( state, eventName, cbName ) {
+
+    var controller = this.component( 'controller' );
+    var cb = controller[ cbName ];
+
+    // If the method doesn't exist on the controller, then ignore it
+    if ( !_.isFunction(cb) ) {
+      this._throw( cbName + ' not found on the controller of Puppet.' + this.puppetName );
+      return; 
+    }
+
+    // this.states[ state ] = this.states[ state ] || {};
+    // this.states[ state ][ eventName ] = cb;
+
+  },
+
+  _attachActionsToStates: function( methodsMap, eventName, action ) {
+
+    // This is the value we attach to the event on the Fsm.
+    // A string for a transition; a function otherwise
+    var stateValue;
+    // Get a handle of the controller
+    var controller = this.component( 'controller' );
+
+    if ( action.type === 'transition' ) {
+      stateValue = action.newState;
+    } else if ( action.type === 'method' ) {
+      stateValue = controller[ action.methodName ];
+    }
+
+    // This method is always fired
+    // if ( states === '*' ) {
+    //   console.log( 'Always fired:', action );
+    // }
+
+
+    // // Attach the method to a single state
+    // else if ( _.isString( states ) ) {
+    //   // this._attachMethodToState( states, eventName, action );
+    // }
+
+    // // Attach the method to an array of states
+    // else if ( _.isArray( states ) ) {
+    //   // _.each( states, function(state) {
+    //   //   console.log( 'The state is', state, eventName, action );
+    //   //   this._attachMethodToState( state, eventName, action );
+    //   // }, this);
+    // }
+
+  },
+
+  // After the initialize function runs,
+  // Run some final set up on the puppet
+  _afterInit: function( options ) {
+
+    // Load up the components of this puppet
+    this._configureComponents();
+
+    // Get the states object for the Fsm
+    this._setFsmStates( options );
+
+    // Start up the fsm
+    this.fsm = new Puppets.Fsm({
+      namespace: 'puppets.' + this.puppetName
+    });
 
   },
 
@@ -327,9 +466,25 @@ window.Puppets.Puppet = Marionette.Module.extend({
 
   },
 
+  _defaultRequests: function() {
+
+    return {};
+
+  },
+
   // Adds the :puppets.[puppetName] suffix to an event type
   _suffixEventName: function( eventType ) {
     return eventType + ':puppets.' + this.puppetName;
+  },
+
+  _throw: function( msg, type ) {
+
+    type = type || 'warn';
+
+    if ( console && console[type] ) {
+      console[type]( 'Warning:', msg );
+    }
+
   },
 
   // Share a suffixed event globally

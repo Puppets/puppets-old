@@ -2,34 +2,55 @@
 
   window.Puppets.ExamplePuppet = window.Puppets.Puppet.extend({
 
-
-    define: function() {
-
-      console.log('2');
-
-    },
-
     initialize: function( name, app, options ) {
 
+      // The different components of the puppet
       this.components = {
-        'something': SomeItemView
+        'something': SomeItemView,
+        'controller': SomeController
       };
 
-      this.events = {
+      this.states = [
+        "stateOne",
+        "stateTwo",
+        "stateThree",
+        "stateFour"
+      ];
 
-        local: {
-          'lala': this.someFn
-        },
-        global: {
-          'lala': this.controller
-        },
-        'fsm.events': {
-          'lala': this.someFn
-        }
+      // Call this method => From state
+      this.methodsMap = {
+
+        "actionOne"  : [ "stateOne", "stateTwo" ],
+        "actionTwo"  : "*",
+        "actionThree": "stateOne"
 
       };
+
+      // Transition To => From state
+      this.transitionsMap = {
+
+        "stateOne" : [ "stateTwo", "stateThree" ],
+        "stateTwo" : "stateOne"
+
+      }
 
     },
+  });
+
+  var SomeController = Marionette.Controller.extend({
+
+    actionOne: function() {
+
+      console.log( 'ACTION ONE!' );
+
+    },
+
+    actionTwo: function() {
+
+      console.log( 'ACTION TWO!' );
+
+    }
+
   });
 
   var SomeItemView = Marionette.ItemView.extend({

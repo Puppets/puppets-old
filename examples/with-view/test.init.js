@@ -4,13 +4,20 @@
 
   app.addInitializer(function() {
 
-    app.module("One-shouldnt", {
-      moduleClass: Puppets.Puppet,
+    app.module("Test", {
+      moduleClass: Puppets.ExamplePuppet,
       startWithParent: true,
-      define: function(Mod){
-        Mod.addInitializer(function() {
-          console.log("One-shouldnt started");
-        });
+      events: {
+        "event:one": {
+          type: 'method',
+          methodName: 'actionOne'
+        },
+        "event:two": {
+          type: 'transition',
+          newState: 'stateOne'
+        },
+        "event:three": "actionThree",
+        "event:four": "actionFour"
       }
     });
 

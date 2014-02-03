@@ -11,6 +11,10 @@
       stopped: {
         _onEnter: function() {
           console.log('Stopped');
+        },
+        'some:event': 'started',
+        'lala': function() {
+          console.log( 'RECEIVED' );
         }
       },
       started: {
