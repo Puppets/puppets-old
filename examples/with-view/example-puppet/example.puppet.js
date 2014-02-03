@@ -1,60 +1,50 @@
 (function() {
 
-  var someItemView = new Marionette.ItemView({
+  window.Puppets.ExamplePuppet = window.Puppets.Puppet.extend({
 
-    initialize: function() {
 
-      // Configure some events here for magical-ness
-      this.localEventsHash = {
-        'lalala:wut': this.testFn
-      };
+    define: function() {
+
+      console.log('2');
 
     },
-
-    testFn: function() {
-
-      console.log('No wai');
-
-    }
-
-  });
-
-  window.ExamplePuppet = window.Puppets.Puppet.extend({
 
     initialize: function( name, app, options ) {
 
       this.components = {
-        'something': someItemView
+        'something': SomeItemView
       };
 
-      // These hashes bind to the puppet Controller for now
-      // I want to be able to specify this on the components
-      // as well, but bind it to those components
-      this.localEventsHash = {
-        'lalala:wut': this.test
-      };
-      this.localCommandsHash = {
-        'doitpls': this.testCommand
-      };
-      this.localRequestsHash = {
-        'testReq': this.testReq
+      this.events = {
+
+        local: {
+          'lala': this.someFn
+        },
+        global: {
+          'lala': this.controller
+        },
+        'fsm.events': {
+          'lala': this.someFn
+        }
+
       };
 
     },
+  });
 
-    test: function() {
-      this.emitGlobalEvent('woot', 'ok', 'yes');
-    },
+  var SomeItemView = Marionette.ItemView.extend({
 
-    testReq: function() {
-      return 'Succezz';
-    },
+    // Initialized with the same options as the Puppet
+    initialize: function( options ) {
 
-    testCommand: function() {
-      console.log('okok...');
-    },
+      // Configure some events here for magical-ness
+      this.events = {
+        'lalala:wut': this.testFn
+      };
 
-    configureComponents: function( options ) {
+      this.states = {
+
+      }
 
     }
 

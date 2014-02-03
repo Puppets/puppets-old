@@ -2,17 +2,20 @@
 
   window.app = new Marionette.Application({});
 
-  app.start();
-
   app.addInitializer(function() {
 
-    app.module("TestPuppet", {
+    app.module("One-shouldnt", {
       moduleClass: Puppets.Puppet,
-      initialize: function( option ) {
-        
+      startWithParent: true,
+      define: function(Mod){
+        Mod.addInitializer(function() {
+          console.log("One-shouldnt started");
+        });
       }
     });
 
   });
+
+  app.start();
 
 })();

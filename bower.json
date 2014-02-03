@@ -28,6 +28,7 @@
   "dependencies": {
     "machina": "~0.3.4",
     "backbone.wreqr-radio": "~1.0.0",
-    "machina.wreqr-radio": "~1.0.0"
+    "machina.wreqr-radio": "~1.0.0",
+    "marionette": "~1.6.0"
   }
 }

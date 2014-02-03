@@ -15,175 +15,87 @@ window.Puppets.Puppet = Marionette.Module.extend({
   constructor: function( puppetName, app, options ){
 
     this.app = app;
+    this.puppetName = puppetName;
 
     options = options || {};
 
     // Start up the fsm
-    // this.fsm = new Puppets.Fsm({
-    //   namespace: 'Puppets.' + this.puppetName
-    // });
-
+    this.fsm = new Puppets.Fsm({
+      namespace: 'Puppets.' + this.puppetName
+    });
 
     // Attach references to useful channels
-    this.globalChannel    = Backbone.radio.channel( 'global' );
-    this.localChannel     = Backbone.radio.channel( 'Puppets.' + puppetName );
-    this.fsmEventsChannel = Backbone.radio.channel( 'Puppets.' + puppetName + '.events' );
+    this.channels = {
+      global:       Backbone.radio.channel( 'global' ),
+      local:        Backbone.radio.channel( 'puppets.' + puppetName ),
+      'fsm.events': Backbone.radio.channel( 'puppets.' + puppetName + '.events' )
+    };
 
-    // this._configRegion( options );
+    this.controller = new Puppets.Controller();
 
     Marionette.Module.prototype.constructor.apply( this, Array.prototype.slice.call(arguments, 0) );
-
-    // Configure the local and global channels after the user is
-    // given the opportunity to add events in `initialize()`
-    // this.startChannel( localChannel );
-    // this.startChannel( globalChannel );
-
-    // After the user's initialize function has run, set up the components
-    // this._components = {};
-    // this._linkComponents();
-    // this.configureComponents( options );
+    this._afterInit();
 
   },
 
-  // This function is called after the components have been set up.
-  // // Overwrite it to pass options to the components
-  // configureComponents: function() {},
+  // This code runs after the user's extended Puppet is defined. Use this as an opportunity to handle that
+  // Puppet's options
+  _afterInit: function() {
 
-  // // Apply the default settings to the region, if one is specified
-  // _configRegion: function( options ) {
+    // this._linkComponents();
 
-  //   if ( !options.region ) {
-  //     return;
-  //   }
-  //   // Set the region as a component
-  //   this.component('region', options.region);
-  //   // Retrieve the newly-added region
-  //   var region = this.component('region');
-  //   // Set some properties on it based on the options
-  //   region.duration = options.duration || Puppets.Region._defaultDuration;
-  //   region.transition = options.transition || Puppets.Region._defaultTransition;
+    // Configure the local and global channels after the user is
+    // given the opportunity to add events in `initialize()`
 
-  // },
+  },
+
+  // Give the components access to the channels
+  _configureComponents: function() {
+
+    var newComponent;
+    this._components = {};
+
+    _.each( this.components, function( component, name ) {
+      // Instantiate the component, passing it our options
+      newComponent = this._components[ name ] = new component( this.options );
+      // Give it access to the same channels
+      newComponent.channels = this.channels;
+      newComponent.componentName = name;
+      newComponent.puppetName = this.puppetName;
+    }, this);
+
+  },
 
   // // Get & set components
-  // component: function( name, object ) {
+  component: function( name, object ) {
 
-  //   // If there's no object, then retrieve the component
-  //   if ( !object ) {
-  //     return this._components[name];
-  //   }
-  //   // Return false if the component has already been set; they can't be overwritten (yet)
-  //   else if ( _.has( this._components, name ) ) {
-  //     return false;
-  //   }
-  //   // Otherwise, add a new component
-  //   else {
-  //     this._components[name] = object;
-  //   }
+    // If there's no object, then retrieve the component
+    if ( !object ) {
+      return this._components[name];
+    }
+    // Return false if the component has already been set; they can't be overwritten (yet)
+    else if ( _.has( this._components, name ) ) {
+      return false;
+    }
+    // Otherwise, add a new component
+    else {
+      this._components[name] = object;
+      return object;
+    }
 
-  // },
+  },
 
-  // Gives the component the local vent and access to the componecrnts
-  // _linkComponents: function() {
+  // Adds the :puppets.[puppetName] suffix to an event type
+  _suffixEventName: function( eventType ) {
+    return eventType + ':puppets.' + this.puppetName;
+  },
 
-  //   var localChannel = this.channel( 'local' );
+  // Share a suffixed event globally
+  emit: function( eventName ) {
 
-  //   if (!this.components) {
-  //     return;
-  //   }
-  //   _.each(this.components, function(component, name) {
+    arguments[0] = this._suffixEventName( eventName );
+    this.channels.global.vent.trigger.apply( this.app.vent, Array.prototype.slice.apply(arguments) );
 
-  //     // Give them names and access to the local wreqr channel
-  //     component.componentName = name;
-  //     component.puppetName = this.puppetName;
-
-  //     // Set up the local channel on the component
-  //     _.extend(component, Backbone.WreqrChannel);
-  //     component.attachChannel(
-  //       'local',
-  //       localChannel.vent,
-  //       localChannel.commands,
-  //       localChannel.reqres
-  //     );
-  //     // Attach the component
-  //     this.component( name, component );
-
-  //   }, this);
-
-  // },
-
-  // // Default reactions to region events
-  // _startedPuppet: function() {
-  //   this._changeState( 'started' );
-  //   this.emitGlobalEvent('start');
-  // },
-  // _readyPuppet: function() {
-  //   this._changeState( 'ready' );
-  //   this.emitGlobalEvent('ready');
-  // },
-  // _stoppingPuppet: function() {
-  //   this._changeState( 'stopping' );
-  //   this.emitGlobalEvent('closing');
-  // },
-  // _stoppedPuppet: function() {
-  //   this._changeState( 'stopped' );
-  //   this.emitGlobalEvent('close');
-  // },
-  // _shareViewUpdating: function() {
-  //   this.emitGlobalEvent('updating');
-  // },
-  // _shareViewUpdate: function() {
-  //   this.emitGlobalEvent('update');
-  // },
-
-  // // Render the region with the item view, if they exist
-  // start: function() {
-  //   if ( this.region && this.itemView ) {
-  //     this.region.show( this.itemView );
-  //   }
-  // },
-
-  // // Close the region, if it exists
-  // stop: function() {
-  //   if ( this.region ) {
-  //     this.region.close();
-  //   }
-  // },
-
-  // _defaultEvents: {
-  //   local: {
-  //     vent: {
-  //       'open:region': '_startedPuppet',
-  //       'ready:region': '_readyPuppet',
-  //       'closing:region': '_stoppingPuppet',
-  //       'close:region': '_stoppedPuppet'
-  //     }
-  //   },
-  //   global: {
-  //     commands: {
-  //       'start': 'start',
-  //       'stop' : 'stop'
-  //     },
-  //     requests: {
-  //       'isStarted' : '_isStarted',
-  //       'isReady'   : '_isReady',
-  //       'isStopping': '_isStopping',
-  //       'isStopped' : '_isStopped'
-  //     }
-  //   }
-  // },
-
-  // // Adds the :puppets.[puppetName] suffix to an event type
-  // _suffixEventName: function( eventType ) {
-  //   return eventType + ':puppets.'+this.puppetName;
-  // },
-
-  // // Share a suffixed event globally
-  // emit: function( eventName ) {
-
-  //   arguments[0] = this._suffixEventName( eventName );
-  //   this.app.vent.trigger.apply( this.app.vent, Array.prototype.slice.apply(arguments) );
-
-  // }
+  }
 
 });

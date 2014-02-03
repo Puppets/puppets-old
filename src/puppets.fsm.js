@@ -11,17 +11,11 @@
       stopped: {
         _onEnter: function() {
           console.log('Stopped');
-        },
-        "pasta": function() {
-          console.log('Stopped is handling this pasta');
         }
       },
       started: {
         _onEnter: function() {
           console.log('Started');
-        },
-        "truck": function() {
-          console.log('Started is handling this truck');
         }
       }
     }

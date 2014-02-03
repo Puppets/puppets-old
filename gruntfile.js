@@ -2,7 +2,7 @@ module.exports = function( grunt ) {
 
   var fileList = [
     'bower_components/backbone.wreqr-radio/backbone.wreqr-radio.js',
-    // 'src/machina.base.js',
+    'src/puppets.fsm.js',
     // 'src/puppets.region.js',
     // 'src/puppets.item-view.js',
     'src/puppets.puppet.js'
