@@ -6,18 +6,12 @@
 
     app.module("Test", {
       moduleClass: Puppets.ExamplePuppet,
-      startWithParent: true,
-      events: {
-        "event:one": {
-          type: 'method',
-          methodName: 'actionOne'
-        },
-        "event:two": {
-          type: 'transition',
-          newState: 'stateOne'
-        },
-        "event:three": "actionThree",
-        "event:four": "actionFour"
+      actions: {
+        stateOne: 'event:state',
+        actionOne: 'event:one',
+        actionTwo: '*',
+        actionThree: 'event:three',
+        actionFour: 'event:four',
       }
     });
 

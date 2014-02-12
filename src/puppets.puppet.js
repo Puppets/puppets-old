@@ -26,48 +26,131 @@ window.Puppets.Puppet = Marionette.Module.extend({
       local:        Backbone.radio.channel( 'puppets.' + puppetName ),
       'fsm.events': Backbone.radio.channel( 'puppets.' + puppetName + '.events' )
     };
+    this.vent     = this.channels.local.vent;
+    this.commands = this.channels.local.commands;
+    this.reqres   = this.channels.local.reqres;
 
     Marionette.Module.prototype.constructor.apply( this, Array.prototype.slice.call(arguments, 0) );
     this._afterInit( options );
 
   },
 
+  _attachValue: function( value, state ) {
+
+    console.log( 'lala', value );
+
+  },
+
+  _generateEventsMap: function( statesMap ) {
+
+    var eventsMap = {};
+
+    _.each( statesMap, function(method, state) {
+
+      if ( _.isArray(method) ) {
+
+        _.each( method, function( method ) {
+          eventsMap[ method ] = eventsMap[ method ] || [];
+          eventsMap[ method ].push( state );
+        }, this);
+
+      } else if ( _.isString( method )) {
+
+        eventsMap[ method ] = eventsMap[ method ] || [];
+        eventsMap[ method ].push( state )
+
+      }
+
+    }, this);
+
+    return eventsMap;
+
+  },
+
   _setFsmStates: function( options ) {
 
-    var events     = options && options.events;
-    var methodsMap = this.methodsMap;
-    var transitionsMap = this.transitionsMap;
+    var actions     = options && options.actions;
+    var statesMap  = this.statesMap;
+    var states     = _.keys( statesMap );
     var controller = this.component( 'controller' );
-    var associatedStates;
+    var eventsMap = this._generateEventsMap( statesMap );
 
     // Only continue if we have events set up by the user,
     // and events mapped to states in the puppet,
     // and a controller set up for this puppet
-    if ( !events || !methodsMap || !transitionsMap || !controller ) {
+    if ( !actions || !statesMap || !controller ) {
       return;
     }
 
-    // Loop through the events/actions hash that the user has passed us
-    _.each( events, function( action, eventName ) {
+    console.log( states );
 
-      var stateValue;
-      var mapValue;
+    _.each( actions, function(eventName, action) {
 
-      if ( action.type === 'transition' ) {
-        stateValue = action.newState;
-        mapValue = transitionsMap[ stateValue ];
-        console.log( action, stateValue, mapValue );
-        this._attachTransitionsToStates( mapValue, eventName, stateValue );
+      // Check for transitions first
+      if ( _.has( eventsMap, action ) ) {
+
+        var eventInfo = eventsMap[ action ];
+
+        _.each( eventInfo, function( state ) {
+
+          console.log( '~~~', action, state );
+
+          // Set the transition
+          if ( _.contains( states, action ) ) {
+
+            console.log("TRANSITION", action);
+            this.statesConfig[ state ] = this.statesConfig[ state ] || {};
+            this.statesConfig[ state ][ action ] = state;
+
+          }
+
+          // Now check for methods on the controller
+          else if ( _.isFunction( controller[action] )) {
+            console.log( 'ATTACHED', action );
+            this.statesConfig[ state ] = this.statesConfig[ state ] || {};
+            this.statesConfig[ state ][ action ] = controller[ action ];
+          }
+
+          else {
+            console.log('NOT ATTACHED', action);
+          }
+
+        }, this);
+
       }
-      else if ( action.type === 'method' ) {
-        stateValue = action.newState;
-        mapKey = transitionsMap[ stateValue ];
-        this._attachMethodsToStates( mapValue, eventName, stateValue );
+
+      // Bind these actions for all states
+      else if ( _.isFunction( controller[action] ) ) {
+        this.vent.on( eventName, action );
       }
-      
-      this._attachActionsToStates( methodsMap, eventName, action );
+
+      else {
+        console.log('Neither', action);
+      }
 
     }, this);
+
+    // Loop through the events/actions hash that the user has passed us
+    // _.each( events, function( eventName, action ) {
+
+    //   // var stateValue;
+    //   // var mapValue;
+
+    //   // if ( action.type === 'transition' ) {
+    //   //   stateValue = action.newState;
+    //   //   mapValue = transitionsMap[ stateValue ];
+    //   //   console.log( action, stateValue, mapValue );
+    //   //   this._attachTransitionsToStates( mapValue, eventName, stateValue );
+    //   // }
+    //   // else if ( action.type === 'method' ) {
+    //   //   stateValue = action.newState;
+    //   //   mapKey = transitionsMap[ stateValue ];
+    //   //   this._attachMethodsToStates( mapValue, eventName, stateValue );
+    //   // }
+      
+    //   // this._attachActionsToStates( methodsMap, eventName, action );
+
+    // }, this);
 
   },
 
