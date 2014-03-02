@@ -4,7 +4,7 @@ An opinionated pattern for building modular components for Marionette.js
 
 ## About
 
-Marionette provides the necessary building blocks to build decoupled, modular applications. But one of its virtues –
+Marionette provides the necessary elements to build decoupled, modular applications. But one of its virtues –
 its (relative) lack of opinion – can also be a flaw. It is tempting, and sometimes easy, to write tightly coupled
 Marionette applications.
 
