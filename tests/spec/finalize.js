@@ -18,28 +18,28 @@ describe('Closing a Puppet', function() {
 
 });
 
-describe('Closing a Puppet with pieces', function() {
+// describe('Closing a Puppet with pieces', function() {
 
-  var PuppetClass, puppet, localCh, spy;
+//   var PuppetClass, puppet, localCh, spy;
 
-  beforeEach(function() {
+//   beforeEach(function() {
 
-    PuppetClass = Puppets.Puppet.extend({
-      pieces: {
-        somePiece: Marionette.ItemView,
-        someController: Marionette.Controller
-      }
-    });
-    puppet = new PuppetClass( 'puppetName', {}, {} );
-    localCh = puppet.channels.local;
-    spy = sinon.spy( localCh, 'reset' );
-    puppet.start();
-    puppet.stop();
+//     PuppetClass = Puppets.Puppet.extend({
+//       pieces: {
+//         somePiece: Marionette.ItemView,
+//         someController: Marionette.Controller
+//       }
+//     });
+//     puppet = new PuppetClass( 'puppetName', {}, {} );
+//     localCh = puppet.channels.local;
+//     spy = sinon.spy( localCh, 'reset' );
+//     puppet.start();
+//     puppet.stop();
 
-  });
+//   });
 
-  it( 'should reset its local channel', function() {
-    expect( spy ).to.have.been.calledOnce;
-  });
+//   it( 'should reset its local channel', function() {
+//     expect( spy ).to.have.been.calledOnce;
+//   });
 
-});
+// });
