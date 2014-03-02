@@ -205,7 +205,7 @@ describe('Specifying an events hash on startup', function() {
       globalEvents: _.clone(globalEventsHash)
     });
 
-    localCh = Backbone.radio.channel( 'puppets.'+puppetName );
+    localCh = Backbone.radio.channel( 'puppet.'+puppetName );
     globalCh = Backbone.radio.channel( 'global' );
 
     localVentStub = sinon.spy( localCh, 'connectEvents' );

@@ -163,7 +163,7 @@
     },
 
     _channelName: function() {
-      return 'puppets.' + this.puppetName;
+      return 'puppet.' + this.puppetName;
     },
 
     _initDefaultListeners: function() {

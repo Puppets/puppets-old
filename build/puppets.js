@@ -278,6 +278,9 @@
       this.addFinalizer( function() {
 
         _.each( this.pieces, function(piece) {
+          if ( piece.off ) {
+            piece.off();
+          }
           if ( piece.close ) {
             piece.close();
           } else if ( piece.remove ) {
@@ -377,7 +380,7 @@
     },
 
     _channelName: function() {
-      return 'puppets.' + this.puppetName;
+      return 'puppet.' + this.puppetName;
     },
 
     _initDefaultListeners: function() {

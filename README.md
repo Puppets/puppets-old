@@ -4,8 +4,8 @@ An opinionated pattern for building modular components for Marionette.js
 
 ## About
 
-Marionette provides the necessary building blocks to build decoupled, modular application. But one of its virtues –
-its (relative) lack of opinion – can also be a flaw. It is tempting, sometimes easy, to write tightly coupled
+Marionette provides the necessary building blocks to build decoupled, modular applications. But one of its virtues –
+its (relative) lack of opinion – can also be a flaw. It is tempting, and sometimes easy, to write tightly coupled
 Marionette applications.
 
 Puppets is an opinionated way to build components with Marionette to solve two issues: making them decoupled,
@@ -81,13 +81,13 @@ var CustomPuppet = Puppets.Puppet.extend({
 
 ### Puppets Local Channel
 
-Every Puppet has its own local channel, which is automatically set up when you instantiate it. The name of the channel is  `puppets.{puppetName}`.
+Every Puppet has its own local channel, which is automatically set up when you instantiate it. The name of the channel is  `puppet.{puppetName}`.
 
 ```js
 app.module( 'somePuppet', Puppets.Puppet );
 
 // Get a handle of that puppet's channel
-var somePuppetCh = Backbone.radio.channel( 'puppets.somePuppet' );
+var somePuppetCh = Backbone.radio.channel( 'puppet.somePuppet' );
 ```
 
 The three protocols of a Puppet's local channel are attached directly to it.
@@ -104,7 +104,7 @@ myPuppet.reqres;
 
 ### Communicating on the global channel
 
-There is a convenience function available for communicating on the global channel. Simply use the `emit` helper function.
+There is a convenience function available for communicating on the global channel, `emit`.
 This appends the name of whatever event you trigger with `:{puppetName}`.
 
 ```js
@@ -120,8 +120,7 @@ from `Backbone.radio.channel( 'global' )`, which is another thing entirely.
 
 ### Attaching event handlers
 
-Puppets comes with a convenient way to attach handlers to events. Simply pass a `localEvents` or `globalEvents` hash, depending on the channel
-you wish to associate the handler with.
+Pass a `localEvents` or `globalEvents` hash to quickly attach handlers to events on the respective channel.
 
 ```js
 var PuppetClass = Puppets.Puppet.extend({
@@ -229,8 +228,7 @@ var somePiece = new Backbone.Collection();
 app.module( 'myPuppet' ).pieces( 'somePiece', somePiece );
 ```
 
-You cannot overwrite a piece that already exists. Attempts to do so will be ignored, and a value of `false` will be
-returned from the function.
+You cannot overwrite a piece that already exists. Attempts to do so will be ignored, and the function will return `false`.
 
 ```js
 app.module( 'myPuppet', Puppets.Puppet );

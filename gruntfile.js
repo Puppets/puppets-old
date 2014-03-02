@@ -60,8 +60,8 @@ module.exports = function( grunt ) {
       test: {
         src: ['tests/index.html'],                
         options: {    
-          threshold: 90,
-          globalThreshold: 90,
+          threshold: 70,
+          globalThreshold: 70,
           log: true,
           logErrors: true
         }                

@@ -84,7 +84,7 @@ describe('Specifying an pieces hash', function() {
     it( 'should attach names to the object', function() {
       expect( somePiece ).to.have.property( 'puppetName', 'puppetName' );
       expect( somePiece ).to.have.property( 'pieceName', 'somePiece' );
-      expect( somePiece ).to.have.property( 'channelName', 'puppets.'+'puppetName' );
+      expect( somePiece ).to.have.property( 'channelName', 'puppet.'+'puppetName' );
     });
 
     it( 'should attach the local protocols directly on the object', function() {
