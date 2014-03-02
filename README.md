@@ -5,7 +5,7 @@ An opinionated pattern for building modular components for Marionette.js
 ## About
 
 Marionette provides the necessary building blocks to build decoupled, modular application. But one of its virtues –
-its (relative) lack of opinion – can be one of its flaws. It is tempting, sometimes even easy, to write tightly coupled
+its (relative) lack of opinion – can also be a flaw. It is tempting, sometimes easy, to write tightly coupled
 Marionette applications.
 
 Puppets is an opinionated way to build components with Marionette to solve two issues: making them decoupled,
@@ -14,13 +14,14 @@ and making them reusable.
 ### Principles
 
 1. Components (Puppets) should be constructed of one or more pieces that work together to accomplish a *single* task
-2. Puppets should provide an API to interact with through a messaging system
+2. Puppets should expose an API for interactions through a messaging protocol
 3. Messaging in your application should be *explicitly* namespaced
 4. Puppets should be reusable, plug-and-play pieces of functionality
+5. Puppets should be customizable by passing in options
 
 ## Getting Started
 
-Get the source by [direct download](https://github.com/Puppets/puppets/blob/master/build/puppets.js), cloning this repo, or bower.
+Get the source by [direct download](https://github.com/Puppets/puppets/blob/master/build/puppets.js), cloning this repo, or Bower.
 
 `bower install puppets`
 
@@ -45,17 +46,30 @@ var someNewCh = Backbone.radio.channel( 'lalala' );
 someNewCh.vent.trigger( 'someEvent' );
 ```
 
-## Puppet.prototype
-
-The Puppets prototype is attached to `window.Puppets.Puppet`. It's an extension of Marionette.Module, so it can be attached to your
-application just like any other module.
+Note that the global `vent` is not the same `vent` that comes with a new `Marionette.Application`. They are two different things. It is recommended that
+you overwrite `myApp.vent` when using Puppets.
 
 ```js
-// Instantiate your first puppet by adding a module that is a puppet
+myApp = new Marionette.Application();
+
+// I recommend overwriting vent and attaching the global commands and reqres to your Application
+var globalCh = Backbone.radio.channel( 'global' );
+myApp.vent = globalCh.vent;
+myApp.commands = globalCh.commands;
+myApp.reqres = globalCh.reqres;
+```
+
+## Puppet.prototype
+
+The Puppets prototype is accessible via `window.Puppets.Puppet`. It's an extension of `Marionette.Module`, so it can be attached to your
+application just like any other module. Simply pass it as the `moduleClass` of the module that you're instantiating.
+
+```js
+// Instantiate a Puppet by adding a module that extends from the Puppets.Puppet prototype
 app.module( 'myFirstPuppet', Puppets.Puppet );
 ```
 
-Puppets, by default, have `startWithParent` set to false.
+All Puppets, by default, have `startWithParent` set to false.
 
 You are encouraged to extend the base class to build your own puppets.
 
@@ -76,7 +90,7 @@ app.module( 'somePuppet', Puppets.Puppet );
 var somePuppetCh = Backbone.radio.channel( 'puppets.somePuppet' );
 ```
 
-Within the puppet you can access the three protocols of its local channel directly.
+The three protocols of a Puppet's local channel are attached directly to it.
 
 ```js
 app.module( 'somePuppet', Puppets.Puppet );
@@ -90,7 +104,8 @@ myPuppet.reqres;
 
 ### Communicating on the global channel
 
-Communicating on the global channel is easy, too. Simply use the `emit` helper function. This appends whatever event you trigger with `:{puppetName}`.
+There is a convenience function available for communicating on the global channel. Simply use the `emit` helper function.
+This appends the name of whatever event you trigger with `:{puppetName}`.
 
 ```js
 app.module( 'somePuppet', Puppets.Puppet );
@@ -100,7 +115,7 @@ var myPuppet = app.module( 'somePuppet' );
 myPuppet.emit( 'anEvent' );
 ```
 
-Take note that the global vent does not equal the instance of `vent` that is attached to Marionette Applications by default. It is the vent
+I mentioned the following fact above, but do note that the global `vent` *is not* the same `vent` that comes with Marionette Applications. It is the vent
 from `Backbone.radio.channel( 'global' )`, which is another thing entirely.
 
 ### Attaching event handlers
@@ -145,7 +160,7 @@ var PuppetClass = Puppets.Puppet.extend({
 
 Puppets can have Pieces. These are simply instances of any other object that are attached directly to the Puppet, and connected through its local channel.
 
-Specify your pieces with the pieces hash:
+Specify the Classes of your pieces – not instances – with the pieces hash:
 
 ```js
 var PuppetClass = Puppets.Puppet.extend({
@@ -158,6 +173,32 @@ var PuppetClass = Puppets.Puppet.extend({
 ```
 
 Pieces are instantiated alongside the puppet itself.
+
+### Options passed to pieces
+
+The options sent to the `constructor` and `initialize` functions of the pieces are the same options passed as the Puppet definition.
+This allows you to quickly pass data down from the module initializer to its individual pieces.
+
+```js
+// Set up our piece
+var MyPiece = Puppet.ItemView.extend({
+  initialize: function( options ) {
+    this.color = options.color;
+  }
+});
+
+app.module( 'myPuppet', {
+  moduleClass: Puppets.Puppet,
+  pieces: {
+    myPiece: MyPiece
+  },
+  color: '#434343'
+});
+
+// '#434343'
+app.module( 'myPuppet' ).piece( 'myPiece' ).color;
+```
+
 
 ### Getting and Setting Pieces
 
@@ -189,10 +230,10 @@ app.module( 'myPuppet' ).pieces( 'somePiece', somePiece );
 ```
 
 You cannot overwrite a piece that already exists. Attempts to do so will be ignored, and a value of `false` will be
-returned from the function
+returned from the function.
 
 ```js
-app.module( 'myPuppet', Puppets.Puppet);
+app.module( 'myPuppet', Puppets.Puppet );
 
 var somePiece = new Backbone.Collection();
 var anotherPiece = new Marionette.ItemView();
@@ -202,31 +243,6 @@ app.module( 'myPuppet' ).pieces( 'somePiece', somePiece );
 
 // Returns false. This piece has already been set.
 app.module( 'myPuppet' ).pieces( 'somePiece', anotherPiece );
-```
-
-### Options passed to pieces
-
-The options sent to the `constructor` and `initialize` functions of the pieces are the same options passed as the Puppet definition.
-This allows you to quickly pass data down from the module initializer to its individual pieces.
-
-```js
-// Set up our piece
-var MyPiece = Puppet.ItemView.extend({
-  initialize: function( options ) {
-    this.color = options.color;
-  }
-});
-
-app.module( 'myPuppet', {
-  moduleClass: Puppets.Puppet,
-  pieces: {
-    myPiece: MyPiece
-  },
-  color: '#434343'
-});
-
-// '#434343'
-app.module( 'myPuppet' ).piece( 'myPiece' ).color;
 ```
 
 ### Pieces Local Channel
@@ -263,8 +279,8 @@ var CustomItemView = Marionette.CompositeView.extend({
 
 ### Configuring Events on the Global Channel
 
-There is no easy way for pieces to communicate globally, as they aren't supposed to. Messages that need to
-'bubble' up in that way should first pass through the main Puppet, which then forwards the event through `emit`.
+There is no easy way for pieces to communicate globally, as they aren't meant to. Messages that need to
+'bubble' up to the global channel should first pass through the main Puppet, which then share the event through `emit`.
 
 ### Event Forwarding
 
@@ -285,3 +301,9 @@ var piece = app.module( 'myPuppet' ).pieces( 'somePiece' );
 // render:somePiece
 piece.render();
 ```
+
+## Shutting down a Puppet
+
+Stopping a Puppet calls `reset` on its local channel. This removes all of the listeners from the channel.
+
+For each of its pieces, it will call 'off' if it can be found. Lastly it calls `close` or `remove` on its pieces, depending on which is found.

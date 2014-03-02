@@ -41,15 +41,42 @@
     // Run some final set up on the puppet
     _afterInit: function() {
 
-      this.addFinalizer(function() {
-        this.channels.local.reset();
-      });
+      this._addFinalizers();
 
       this._initDefaultListeners();
 
       // Load up the pieces of this puppet
       this._configurePieces();
 
+    },
+
+    _addFinalizers: function() {
+
+      // Reset the channel
+      this.addFinalizer( function() {
+        this.channels.local.reset();
+      });
+
+      // Shut down the pieces
+      this.addFinalizer( function() {
+
+        _.each( this.pieces, function(piece) {
+          if ( piece.off ) {
+            piece.off();
+          }
+          if ( piece.close ) {
+            piece.close();
+          } else if ( piece.remove ) {
+            piece.remove();
+          }
+        }, this);
+
+      });
+
+    },
+
+    resetChannel: function() {
+      this.channels.local.reset();
     },
 
     // Create and set up our pieces
