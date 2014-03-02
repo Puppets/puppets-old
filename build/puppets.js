@@ -215,359 +215,193 @@
   return WreqrExtension;
 
 }));
-(function() {
-
-  var Fsm = machina.Fsm.extend({
-    initialize: function() {
-      console.log('Init');
-      // do stuff here if you want to perform more setup work
-      // this executes prior to any state transitions or handler invocations
-    },
-    initialState: "stopped",
-    states: {
-      stopped: {
-        _onEnter: function() {
-          console.log('Stopped');
-        },
-        'some:event': 'started',
-        'lala': function() {
-          console.log( 'RECEIVED' );
-        }
-      },
-      started: {
-        _onEnter: function() {
-          console.log('Started');
-        }
-      }
-    }
-  });
-
-  window.Puppets = window.Puppets || {};
-  window.Puppets.Fsm = Fsm;
-
-})();
 /*
  *
  * Puppets.Puppet
  * --------------
  * The base module from which all Puppets extend
- * It sets up the components of the module,
+ * It sets up the elements of the module,
  * and speaks to the Application via the global channel (Application.vent, etc.)
  *
  */
 
-window.Puppets = window.Puppets || {};
+(function() {
 
-window.Puppets.Puppet = Marionette.Module.extend({
+  'use strict';
 
-  constructor: function( puppetName, app, options ){
+  window.Puppets = window.Puppets || {};
 
-    this.app = app;
-    this.puppetName = puppetName;
-    this.statesConfig = {};
+  window.Puppets.Puppet = Marionette.Module.extend({
 
-    options = options || {};
+    constructor: function( puppetName, app, options ){
 
-    // Attach references to useful channels
-    this.channels = {
-      global:       Backbone.radio.channel( 'global' ),
-      local:        Backbone.radio.channel( 'puppets.' + puppetName ),
-      'fsm.events': Backbone.radio.channel( 'puppets.' + puppetName + '.events' )
-    };
-    this.vent     = this.channels.local.vent;
-    this.commands = this.channels.local.commands;
-    this.reqres   = this.channels.local.reqres;
+      this.app = app;
+      this.puppetName = puppetName;
+      this.channelName = this._channelName();
 
-    Marionette.Module.prototype.constructor.apply( this, Array.prototype.slice.call(arguments, 0) );
-    this._afterInit( options );
+      this._options = options || {};
 
-  },
+      // Attach references to relevant channels
+      this.channels = {
+        global: Backbone.radio.channel( 'global' ),
+        local:  Backbone.radio.channel( this.channelName ),
+      };
+      this._attachMessagingProtocols( this, this.channels.local );
 
-  _attachValue: function( value, state ) {
+      Marionette.Module.prototype.constructor.apply( this, Array.prototype.slice.call(arguments, 0) );
 
-    console.log( 'lala', value );
+      this._afterInit();
 
-  },
+    },
 
-  _generateEventsMap: function( statesMap ) {
+    // After the initialize function runs,
+    // Run some final set up on the puppet
+    _afterInit: function() {
 
-    var eventsMap = {};
+      this.addFinalizer(function() {
+        this.channels.local.reset();
+      });
 
-    _.each( statesMap, function(method, state) {
+      this.globalEvents = this.globalEvents || {};
+      this.localEvents  = this.localEvents || {};
+      this._initDefaultListeners();
 
-      if ( _.isArray(method) ) {
+      // Load up the elements of this puppet
+      this._configureElements();
 
-        _.each( method, function( method ) {
-          eventsMap[ method ] = eventsMap[ method ] || [];
-          eventsMap[ method ].push( state );
-        }, this);
+    },
 
-      } else if ( _.isString( method )) {
+    // Create and set up our elements
+    _configureElements: function() {
 
-        eventsMap[ method ] = eventsMap[ method ] || [];
-        eventsMap[ method ].push( state )
+      this._elements = {};
 
-      }
+      _.each( this.elements, function( elementClass, elementName ) {
 
-    }, this);
+        this._createNewElement( elementClass, elementName );
 
-    return eventsMap;
-
-  },
-
-  _setFsmStates: function( options ) {
-
-    var actions     = options && options.actions;
-    var statesMap  = this.statesMap;
-    var states     = _.keys( statesMap );
-    var controller = this.component( 'controller' );
-    var eventsMap = this._generateEventsMap( statesMap );
-
-    // Only continue if we have events set up by the user,
-    // and events mapped to states in the puppet,
-    // and a controller set up for this puppet
-    if ( !actions || !statesMap || !controller ) {
-      return;
-    }
-
-    console.log( states );
-
-    _.each( actions, function(eventName, action) {
-
-      // Check for transitions first
-      if ( _.has( eventsMap, action ) ) {
-
-        var eventInfo = eventsMap[ action ];
-
-        _.each( eventInfo, function( state ) {
-
-          console.log( '~~~', action, state );
-
-          // Set the transition
-          if ( _.contains( states, action ) ) {
-
-            console.log("TRANSITION", action);
-            this.statesConfig[ state ] = this.statesConfig[ state ] || {};
-            this.statesConfig[ state ][ action ] = state;
-
-          }
-
-          // Now check for methods on the controller
-          else if ( _.isFunction( controller[action] )) {
-            console.log( 'ATTACHED', action );
-            this.statesConfig[ state ] = this.statesConfig[ state ] || {};
-            this.statesConfig[ state ][ action ] = controller[ action ];
-          }
-
-          else {
-            console.log('NOT ATTACHED', action);
-          }
-
-        }, this);
-
-      }
-
-      // Bind these actions for all states
-      else if ( _.isFunction( controller[action] ) ) {
-        this.vent.on( eventName, action );
-      }
-
-      else {
-        console.log('Neither', action);
-      }
-
-    }, this);
-
-    // Loop through the events/actions hash that the user has passed us
-    // _.each( events, function( eventName, action ) {
-
-    //   // var stateValue;
-    //   // var mapValue;
-
-    //   // if ( action.type === 'transition' ) {
-    //   //   stateValue = action.newState;
-    //   //   mapValue = transitionsMap[ stateValue ];
-    //   //   console.log( action, stateValue, mapValue );
-    //   //   this._attachTransitionsToStates( mapValue, eventName, stateValue );
-    //   // }
-    //   // else if ( action.type === 'method' ) {
-    //   //   stateValue = action.newState;
-    //   //   mapKey = transitionsMap[ stateValue ];
-    //   //   this._attachMethodsToStates( mapValue, eventName, stateValue );
-    //   // }
-      
-    //   // this._attachActionsToStates( methodsMap, eventName, action );
-
-    // }, this);
-
-  },
-
-  _attachMethodsToStates: function( mapValue, eventName, methodName ) {
-
-    // Get a handle of the controller
-    var controller = this.component( 'controller' );
-
-    if ( !_.isString( methodName ) ) {
-      this._throw( 'States must be a string. "' + methodName + '" is not a string on Puppet.' + this.puppetName );
-      return;
-    } else if ( !mapValue ) {
-      this._throw( 'The state "' + mapValue + '" has no associated methods on Puppet.' + this.puppetName );
-      return;
-    }
-
-    // This method is always fired
-    // if ( states === '*' ) {
-    //   console.log( 'Always fired:', action );
-    // }
-
-
-    // // Attach the method to a single state
-    // else if ( _.isString( states ) ) {
-    //   // this._attachMethodToState( states, eventName, action );
-    // }
-
-    // // Attach the method to an array of states
-    // else if ( _.isArray( states ) ) {
-    //   // _.each( states, function(state) {
-    //   //   console.log( 'The state is', state, eventName, action );
-    //   //   this._attachMethodToState( state, eventName, action );
-    //   // }, this);
-    // }
-
-  },
-
-  _attachTransitionsToStates: function( mapValue, eventName, newState ) {
-
-    // The new state needs to be a string
-    if ( !_.isString( newState ) ) {
-      this._throw( 'States must be a string. "' + newState + '" is not a string in Puppet.' + this.puppetName );
-      return;
-    } else if ( !mapValue ) {
-      this._throw( 'The state "' + mapValue + '" can not be transitioned to in Puppet.' + this.puppetName );
-      return;
-    } else if ( !_.contains(this.states, newState) ) {
-      this._throw( '"' + newState + '" is not a valid state for Puppet.' + this.puppetName );
-    }
-
-    if ( mapValue === '*' ) {
-      console.log( newState + " is transitioned to from all states" );
-    }
-
-    if ( _.isString(mapValue) ) {
-      this._attachTransitionToState( mapValue, newState, eventName );
-    }
-
-    else if ( _.isArray(mapValue) ) {
-      _.each( mapValue, function(fromState) {
-        this._attachTransitionToState( fromState, newState, eventName );
       }, this);
-    }
 
-  },
+    },
 
-  _attachTransitionToState: function( fromState, toState, eventName ) {
+    _createNewElement: function( ElementClass, elementName ) {
 
-    this.statesConfig[ fromState ] = this.states[ fromState ] || {};
-    this.statesConfig[ fromState ][ eventName ] = toState;
+      var newElement = this._elements[ elementName ] = new ElementClass( this._options );
+      this._setUpNewElement( newElement, elementName );
 
-  },
+    },
 
-  _attachMethodToState: function( state, eventName, cbName ) {
+    _setUpNewElement: function( newElement, elementName ) {
 
-    var controller = this.component( 'controller' );
-    var cb = controller[ cbName ];
+      newElement.channels = this.channels;
+      newElement.elementName = elementName;
+      newElement.channelName = this.channelName;
+      newElement.puppetName = this.puppetName;
+      newElement.normalizeMethods = newElement.normalizeMethods || this.normalizeMethods;
+      newElement.localEvents = newElement.localEvents || {};
+      newElement.localEvents = newElement.normalizeMethods( newElement.localEvents );
+      this._attachEvents( this.channelName, newElement.localEvents );
+      this._attachMessagingProtocols( newElement, this.channels.local );
+      this._listenToElementEvents( newElement );
 
-    // If the method doesn't exist on the controller, then ignore it
-    if ( !_.isFunction(cb) ) {
-      this._throw( cbName + ' not found on the controller of Puppet.' + this.puppetName );
-      return; 
-    }
+    },
 
-    // this.states[ state ] = this.states[ state ] || {};
-    // this.states[ state ][ eventName ] = cb;
+    // Get & set elements
+    element: function( name, object ) {
 
-  },
+      // If there's no object, then retrieve the element
+      if ( !object ) {
+        return this._elements[name];
+      }
+      // Return false if the element has already been set; they can't be overwritten (yet)
+      else if ( _.has( this._elements, name ) ) {
+        return false;
+      }
+      // Otherwise, add a new element
+      else {
+        this._elements[name] = object;
+        this._setUpNewElement( object );
+        return object;
+      }
 
-  // After the initialize function runs,
-  // Run some final set up on the puppet
-  _afterInit: function( options ) {
+    },
 
-    // Load up the components of this puppet
-    this._configureComponents();
+    // Binds events from the elements to the vent
+    _listenToElementEvents: function( element ) {
 
-    // Get the states object for the Fsm
-    this._setFsmStates( options );
+      if ( _.matches(element, Backbone.Events) ) {
+        this.listenTo( element, 'all', _.bind( this._forwardElementEvent, this, element.elementName ) );
+      }
 
-    // Start up the fsm
-    this.fsm = new Puppets.Fsm({
-      namespace: 'puppets.' + this.puppetName
-    });
+    },
 
-  },
+    // Forwards events on an element's vent to the local vent
+    // under the elementName namespace
+    _forwardElementEvent: function() {
 
-  // Give the components access to the channels
-  _configureComponents: function() {
+      var args = Array.prototype.slice.call( arguments, 0 );
+      args[ 1 ] = args[ 1 ] + ':' + args[ 0 ];
+      args.shift();
+      this.vent.trigger.apply( this.vent, args );
 
-    var newComponent;
-    this._components = {};
+    },
 
-    _.each( this.components, function( component, name ) {
-      // Instantiate the component, passing it our options
-      newComponent = this._components[ name ] = new component( this.options );
-      // Give it access to the same channels
-      newComponent.channels = this.channels;
-      newComponent.componentName = name;
-      newComponent.puppetName = this.puppetName;
-    }, this);
+    _attachMessagingProtocols: function( obj, channel ) {
 
-  },
+      obj.commands = channel.commands;
+      obj.reqres = channel.reqres;
+      obj.vent = channel.vent;
 
-  // // Get & set components
-  component: function( name, object ) {
+    },
 
-    // If there's no object, then retrieve the component
-    if ( !object ) {
-      return this._components[name];
-    }
-    // Return false if the component has already been set; they can't be overwritten (yet)
-    else if ( _.has( this._components, name ) ) {
-      return false;
-    }
-    // Otherwise, add a new component
-    else {
-      this._components[name] = object;
-      return object;
-    }
+    _channelName: function() {
+      return 'puppets.' + this.puppetName;
+    },
 
-  },
+    _initDefaultListeners: function() {
 
-  _defaultRequests: function() {
+      this._normalizeEventsGroup( this.localEvents );
+      this._normalizeEventsGroup( this.globalEvents );
+      this._attachEvents( this.channelName, this.localEvents );
+      this._attachEvents( 'global', this.globalEvents );
 
-    return {};
+    },
 
-  },
+    _normalizeEventsGroup: function( eventsGroup ) {
 
-  // Adds the :puppets.[puppetName] suffix to an event type
-  _suffixEventName: function( eventType ) {
-    return eventType + ':puppets.' + this.puppetName;
-  },
+      _.each( eventsGroup, function(eventsHash, protocol) {
+        eventsGroup[ protocol ] = this.normalizeMethods( eventsHash );
+      }, this);
 
-  _throw: function( msg, type ) {
+    },
 
-    type = type || 'warn';
+    _attachEvents: function( channelName, eventsHash ) {
 
-    if ( console && console[type] ) {
-      console[type]( 'Warning:', msg );
-    }
+      Backbone.radio.channel( channelName )
+        .connectEvents( eventsHash.vent )
+        .connectCommands( eventsHash.commands )
+        .connectRequests( eventsHash.reqres );
 
-  },
+    },
 
-  // Share a suffixed event globally
-  emit: function( eventName ) {
+    // Share a suffixed event globally
+    emit: function( eventName ) {
 
-    arguments[0] = this._suffixEventName( eventName );
-    this.channels.global.vent.trigger.apply( this.app.vent, Array.prototype.slice.apply(arguments) );
+      var args = Array.prototype.slice.apply( arguments );
+      args[0] = this._suffixEventName( eventName );
+      this.channels.global.vent.trigger.apply( this.app.vent, args );
 
-  }
+    },
 
-});
+    // Adds the channelName suffix to an global event type
+    _suffixEventName: function( eventType ) {
+      return eventType + ':' + this.channelName;
+    },
+
+    normalizeMethods: Marionette.normalizeMethods
+
+  }, Backbone.Events);
+
+
+})();
+
