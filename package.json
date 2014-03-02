@@ -26,7 +26,6 @@
     "grunt-blanket-mocha": "~0.4.0",
     "blanket": "~1.1.6",
     "grunt-contrib-jshint": "~0.8.0",
-    "grunt-contrib-connect": "~0.7.1",
-    "grunt-contrib-copy": "~0.5.0"
+    "grunt-contrib-connect": "~0.7.1"
   }
 }

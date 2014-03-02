@@ -220,7 +220,7 @@
  * Puppets.Puppet
  * --------------
  * The base module from which all Puppets extend
- * It sets up the elements of the module,
+ * It sets up the pieces of the module,
  * and speaks to the Application via the global channel (Application.vent, etc.)
  *
  */
@@ -244,7 +244,7 @@
       // Attach references to relevant channels
       this.channels = {
         global: Backbone.radio.channel( 'global' ),
-        local:  Backbone.radio.channel( this.channelName ),
+        local:  Backbone.radio.channel( this.channelName )
       };
       this._attachMessagingProtocols( this, this.channels.local );
 
@@ -262,82 +262,80 @@
         this.channels.local.reset();
       });
 
-      this.globalEvents = this.globalEvents || {};
-      this.localEvents  = this.localEvents || {};
       this._initDefaultListeners();
 
-      // Load up the elements of this puppet
-      this._configureElements();
+      // Load up the pieces of this puppet
+      this._configurePieces();
 
     },
 
-    // Create and set up our elements
-    _configureElements: function() {
+    // Create and set up our pieces
+    _configurePieces: function() {
 
-      this._elements = {};
+      this._pieces = {};
 
-      _.each( this.elements, function( elementClass, elementName ) {
+      _.each( this.pieces, function(pieceClass, pieceName) {
 
-        this._createNewElement( elementClass, elementName );
+        this._createNewPiece( pieceClass, pieceName );
 
       }, this);
 
     },
 
-    _createNewElement: function( ElementClass, elementName ) {
+    _createNewPiece: function( PieceClass, pieceName ) {
 
-      var newElement = this._elements[ elementName ] = new ElementClass( this._options );
-      this._setUpNewElement( newElement, elementName );
-
-    },
-
-    _setUpNewElement: function( newElement, elementName ) {
-
-      newElement.channels = this.channels;
-      newElement.elementName = elementName;
-      newElement.channelName = this.channelName;
-      newElement.puppetName = this.puppetName;
-      newElement.normalizeMethods = newElement.normalizeMethods || this.normalizeMethods;
-      newElement.localEvents = newElement.localEvents || {};
-      newElement.localEvents = newElement.normalizeMethods( newElement.localEvents );
-      this._attachEvents( this.channelName, newElement.localEvents );
-      this._attachMessagingProtocols( newElement, this.channels.local );
-      this._listenToElementEvents( newElement );
+      var newPiece = this._pieces[ pieceName ] = new PieceClass( this._options );
+      this._setUpNewPiece( newPiece, pieceName );
 
     },
 
-    // Get & set elements
-    element: function( name, object ) {
+    _setUpNewPiece: function( newPiece, pieceName ) {
 
-      // If there's no object, then retrieve the element
+      newPiece.pieceName = pieceName;
+      newPiece.channelName = this.channelName;
+      newPiece.puppetName = this.puppetName;
+      newPiece.channels = this.channels;
+      newPiece.normalizeMethods = newPiece.normalizeMethods || this.normalizeMethods;
+      newPiece.localEvents = newPiece.normalizeMethods( newPiece.localEvents );
+
+      this._attachEvents( this.channelName, newPiece.localEvents );
+      this._attachMessagingProtocols( newPiece, this.channels.local );
+      this._listenToPieceEvents( newPiece );
+
+    },
+
+    // Get & set pieces
+    piece: function( name, object ) {
+
+      // If there's no object, then retrieve the piece
       if ( !object ) {
-        return this._elements[name];
+        return this._pieces[ name ];
       }
-      // Return false if the element has already been set; they can't be overwritten (yet)
-      else if ( _.has( this._elements, name ) ) {
+      // Return false if the piece has already been set; they can't be overwritten (yet)
+      else if ( _.has(this._pieces, name) ) {
         return false;
       }
-      // Otherwise, add a new element
+      // Otherwise, add a new piece
       else {
-        this._elements[name] = object;
-        this._setUpNewElement( object );
+        this._pieces[ name ] = object;
+        this._setUpNewPiece( object );
         return object;
       }
 
     },
 
-    // Binds events from the elements to the vent
-    _listenToElementEvents: function( element ) {
+    // Binds events from the pieces to the vent
+    _listenToPieceEvents: function( piece ) {
 
-      if ( _.matches(element, Backbone.Events) ) {
-        this.listenTo( element, 'all', _.bind( this._forwardElementEvent, this, element.elementName ) );
+      if ( _.matches(piece, Backbone.Events) ) {
+        this.listenTo( piece, 'all', _.bind(this._forwardPieceEvent, this, piece.pieceName) );
       }
 
     },
 
-    // Forwards events on an element's vent to the local vent
-    // under the elementName namespace
-    _forwardElementEvent: function() {
+    // Forwards events on an piece's vent to the local vent
+    // under the pieceName namespace
+    _forwardPieceEvent: function() {
 
       var args = Array.prototype.slice.call( arguments, 0 );
       args[ 1 ] = args[ 1 ] + ':' + args[ 0 ];
@@ -376,6 +374,8 @@
     },
 
     _attachEvents: function( channelName, eventsHash ) {
+
+      eventsHash = eventsHash || {};
 
       Backbone.radio.channel( channelName )
         .connectEvents( eventsHash.vent )

@@ -5,7 +5,7 @@ An opinionated pattern for building modular components for Marionette.js
 ## About
 
 Marionette provides the necessary building blocks to build decoupled, modular application. But one of its virtues –
-its (relative) lack of opinion – can at times be one of its flaws. It is tempting, and sometimes easy, to write tightly coupled
+its (relative) lack of opinion – can be one of its flaws. It is tempting, sometimes even easy, to write tightly coupled
 Marionette applications.
 
 Puppets is an opinionated way to build components with Marionette to solve two issues: making them decoupled,
@@ -13,10 +13,10 @@ and making them reusable.
 
 ### Principles
 
-1. Components should be constructed of one or more pieces that work together to accomplish a *single* task
-2. Components should provide an API to interact with through a messaging system
+1. Components (Puppets) should be constructed of one or more pieces that work together to accomplish a *single* task
+2. Puppets should provide an API to interact with through a messaging system
 3. Messaging in your application should be *explicitly* namespaced
-4. Components should be reusable, plug-and-play pieces of functionality
+4. Puppets should be reusable, plug-and-play pieces of functionality
 
 ## Getting Started
 
@@ -202,6 +202,31 @@ app.module( 'myPuppet' ).pieces( 'somePiece', somePiece );
 
 // Returns false. This piece has already been set.
 app.module( 'myPuppet' ).pieces( 'somePiece', anotherPiece );
+```
+
+### Options passed to pieces
+
+The options sent to the `constructor` and `initialize` functions of the pieces are the same options passed as the Puppet definition.
+This allows you to quickly pass data down from the module initializer to its individual pieces.
+
+```js
+// Set up our piece
+var MyPiece = Puppet.ItemView.extend({
+  initialize: function( options ) {
+    this.color = options.color;
+  }
+});
+
+app.module( 'myPuppet', {
+  moduleClass: Puppets.Puppet,
+  pieces: {
+    myPiece: MyPiece
+  },
+  color: '#434343'
+});
+
+// '#434343'
+app.module( 'myPuppet' ).piece( 'myPiece' ).color;
 ```
 
 ### Pieces Local Channel

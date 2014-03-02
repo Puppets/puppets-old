@@ -1,4 +1,4 @@
-describe('Calling the elements method on a puppet', function() {
+describe('Calling the pieces method on a puppet', function() {
 
   var PuppetClass, puppet, channelName, stub,
   returnedEl, overwrittenEl, attachedEl, controller;
@@ -7,17 +7,17 @@ describe('Calling the elements method on a puppet', function() {
 
     controller = new Marionette.Controller();
     PuppetClass = Puppets.Puppet.extend({
-      elements: {
-        someElement: Marionette.ItemView
+      pieces: {
+        somePiece: Marionette.ItemView
       }
     });
     puppet = new PuppetClass( 'puppetName', {}, {} );
-    returnedEl = puppet.element( 'someElement' );
-    overwrittenEl = puppet.element( 'someElement', {} );
-    attachedEl = puppet.element( 'newElement', controller );
+    returnedEl = puppet.piece( 'somePiece' );
+    overwrittenEl = puppet.piece( 'somePiece', {} );
+    attachedEl = puppet.piece( 'newPiece', controller );
   });
 
-  it( 'should return the instantiated element', function() {
+  it( 'should return the instantiated piece', function() {
     expect( returnedEl ).to.be.instanceof( Marionette.ItemView );
   });
 
@@ -25,23 +25,23 @@ describe('Calling the elements method on a puppet', function() {
     expect( overwrittenEl ).to.be.false;
   });
 
-  it( 'should attach the new element when it doesn\'t exist', function() {
+  it( 'should attach the new piece when it doesn\'t exist', function() {
     expect( attachedEl ).to.equal( controller );
   });
 
 });
 
 
-describe('Specifying an elements hash', function() {
+describe('Specifying an pieces hash', function() {
 
   var PuppetClass, puppet, channelName, stub;
 
   beforeEach(function() {
 
     PuppetClass = Puppets.Puppet.extend({
-      elements: {
-        someElement: Marionette.ItemView,
-        anotherElement: Marionette.ItemView,
+      pieces: {
+        somePiece: Marionette.ItemView,
+        anotherPiece: Marionette.ItemView,
         someController: Marionette.Controller
       }
     });
@@ -51,16 +51,16 @@ describe('Specifying an elements hash', function() {
 
   describe('and passing classes as the values', function() {
 
-    var someElement, anotherElement, someController, puppetChannels,
+    var somePiece, anotherPiece, someController, puppetChannels,
     localCh,
     localCommands, localVent, localReqres,
-    elementCommands, elementVent, elementReqres;
+    pieceCommands, pieceVent, pieceReqres;
 
     beforeEach(function() {
 
-      someElement = puppet._elements.someElement;
-      anotherElement = puppet._elements.anotherElement;
-      someController = puppet._elements.someController;
+      somePiece = puppet._pieces.somePiece;
+      anotherPiece = puppet._pieces.anotherPiece;
+      someController = puppet._pieces.someController;
 
       puppetChannels = puppet.channels;
       localCh = puppet.channels.local;
@@ -69,68 +69,68 @@ describe('Specifying an elements hash', function() {
       localVent = localCh.vent;
       localReqres = localCh.reqres;
 
-      elementCommands = someElement.commands;
-      elementVent = someElement.vent;
-      elementReqres = someElement.reqres;
+      pieceCommands = somePiece.commands;
+      pieceVent = somePiece.vent;
+      pieceReqres = somePiece.reqres;
 
     });
 
     it( 'should instantiate those objects', function() {
-      expect( someElement ).to.be.an.instanceof( Marionette.ItemView );
-      expect( anotherElement ).to.be.an.instanceof( Marionette.ItemView );
+      expect( somePiece ).to.be.an.instanceof( Marionette.ItemView );
+      expect( anotherPiece ).to.be.an.instanceof( Marionette.ItemView );
       expect( someController ).to.be.an.instanceof( Marionette.Controller );
     });
 
     it( 'should attach names to the object', function() {
-      expect( someElement ).to.have.property( 'puppetName', 'puppetName' );
-      expect( someElement ).to.have.property( 'elementName', 'someElement' );
-      expect( someElement ).to.have.property( 'channelName', 'puppets.'+'puppetName' );
+      expect( somePiece ).to.have.property( 'puppetName', 'puppetName' );
+      expect( somePiece ).to.have.property( 'pieceName', 'somePiece' );
+      expect( somePiece ).to.have.property( 'channelName', 'puppets.'+'puppetName' );
     });
 
     it( 'should attach the local protocols directly on the object', function() {
-      expect( someElement ).to.have.property( 'vent' );
-      expect( someElement ).to.have.property( 'commands' );
-      expect( someElement ).to.have.property( 'reqres' );
-      expect( elementCommands ).to.equal( localCommands );
-      expect( elementVent ).to.equal( localVent );
-      expect( elementReqres ).to.equal( localReqres );
+      expect( somePiece ).to.have.property( 'vent' );
+      expect( somePiece ).to.have.property( 'commands' );
+      expect( somePiece ).to.have.property( 'reqres' );
+      expect( pieceCommands ).to.equal( localCommands );
+      expect( pieceVent ).to.equal( localVent );
+      expect( pieceReqres ).to.equal( localReqres );
     });
 
     it( 'should attach normalizeMethods', function() {
-      expect( someElement ).to.have.property( 'normalizeMethods' );
+      expect( somePiece ).to.have.property( 'normalizeMethods' );
     });
 
     it( 'should attach the puppet\'s channels', function() {
-      expect( someElement ).to.have.property( 'channels', puppetChannels );
+      expect( somePiece ).to.have.property( 'channels', puppetChannels );
     });
 
   });
 
-  describe('and calling the element method', function() {
+  describe('and calling the piece method', function() {
 
-    var someElement, gatheredElement;
+    var somePiece, gatheredPiece;
 
     beforeEach(function() {
-      someElement = puppet._elements.someElement;
-      gatheredElement = puppet.element( 'someElement' );
+      somePiece = puppet._pieces.somePiece;
+      gatheredPiece = puppet.piece( 'somePiece' );
     });
 
     it( 'should return the object', function() {
-      expect( someElement ).to.equal( gatheredElement );
+      expect( somePiece ).to.equal( gatheredPiece );
     });
 
   });
 
-  describe('and calling the element method on a nonexistent element', function() {
+  describe('and calling the piece method on a nonexistent piece', function() {
 
-    var gatheredElement;
+    var gatheredPiece;
 
     beforeEach(function() {
-      gatheredElement = puppet.element( 'doesntExist' );
+      gatheredPiece = puppet.piece( 'doesntExist' );
     });
 
     it( 'should return undefined', function() {
-      expect( gatheredElement ).to.be.undefined;
+      expect( gatheredPiece ).to.be.undefined;
     });
 
   });
@@ -138,7 +138,7 @@ describe('Specifying an elements hash', function() {
 });
 
 // This test is really bad. Can I devise a way to spy on the normalizeMethods function directly?
-describe( 'Setting a local events hash on the element', function() {
+describe( 'Setting a local events hash on the piece', function() {
 
   var CustomView, PuppetClass, puppet, spy, localEventsHash, existingVent, nonExistingVent;
 
@@ -158,8 +158,8 @@ describe( 'Setting a local events hash on the element', function() {
     });
 
     PuppetClass = Puppets.Puppet.extend({
-      elements: {
-        someElement: CustomView,
+      pieces: {
+        somePiece: CustomView,
       }
     });
     puppet = new PuppetClass( 'puppetName', {}, {} );

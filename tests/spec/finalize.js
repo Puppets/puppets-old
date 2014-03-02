@@ -5,9 +5,9 @@ describe('Closing a Puppet', function() {
   beforeEach(function() {
 
     PuppetClass = Puppets.Puppet.extend({
-      elements: {
-        someElement: Marionette.ItemView,
-        anotherElement: Marionette.ItemView,
+      pieces: {
+        somePiece: Marionette.ItemView,
+        anotherPiece: Marionette.ItemView,
         someController: Marionette.Controller
       }
     });

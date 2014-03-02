@@ -17,6 +17,9 @@ module.exports = function( grunt ) {
 
     jshint: {
       main: {
+        options: {
+          jshintrc: '.jshintrc'
+        },
         src: 'src/*.js'
       },
       tests: {
