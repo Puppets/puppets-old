@@ -1,5 +1,12 @@
 module.exports = function( grunt ) {
 
+  require('load-grunt-tasks')(grunt);
+
+  var fileList = [
+    'bower_components/backbone.wreqr-radio/backbone.wreqr-radio.js',
+    'src/puppets.js'
+  ];
+
   grunt.initConfig({
 
     clean: {
@@ -8,35 +15,71 @@ module.exports = function( grunt ) {
       }
     },
 
-    uglify: {
+    jshint: {
       main: {
-        src: 'src/*.js',
-        dest: 'build/puppets.min.js'
+        options: {
+          jshintrc: '.jshintrc'
+        },
+        src: 'src/*.js'
+      },
+      tests: {
+        options: {
+          '-W030': true
+        },
+        src: 'tests/spec/*.js'
       }
     },
 
     concat: {
       main: {
-        src: [
-          'src/*.js'
-        ],
+        src: fileList,
         dest: 'build/puppets.js'
       }
+    },
+
+    uglify: {
+      main: {
+        src: fileList,
+        dest: 'build/puppets.min.js'
+      }
+    },
+
+    // Starts a server for running tests in the browser
+    connect: {
+      mocha: {
+        options: {
+          base: [ './', './src', 'tests' ],
+          debug: true,
+          open: true,
+          keepalive: true
+        }
+      }
+    },
+
+    blanket_mocha : {    
+      test: {
+        src: ['tests/index.html'],                
+        options: {    
+          threshold: 70,
+          globalThreshold: 70,
+          log: true,
+          logErrors: true
+        }                
+      }      
     }
 
   });
 
-  var node_modules = [
-    'grunt-contrib-uglify',
-    'grunt-contrib-concat',
-    'grunt-contrib-clean',
-  ];
+  // The default is just an alias of test
+  grunt.registerTask( 'default', ['test'] );
 
-  node_modules.forEach(function(module) {
-    grunt.loadNpmTasks(module);
-  });
+  // Lints and runs unit tests
+  grunt.registerTask( 'test', ['jshint', 'concat', 'blanket_mocha'] );
 
-  // Register tasks
-  grunt.registerTask( "default", [ 'clean', 'concat', 'uglify' ] );
+  // To run tests in the browser
+  grunt.registerTask( 'browser-test', ['connect'] );
+
+  // Build the script
+  grunt.registerTask( 'build', ['default', 'clean', 'concat', 'uglify'] );
 
 };
