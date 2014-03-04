@@ -252,7 +252,7 @@
       this._initDefaultListeners();
 
       Marionette.Module.prototype.constructor.apply( this, Array.prototype.slice.call(arguments, 0) );
-      
+
       this._addFinalizers();
 
     },
@@ -267,7 +267,7 @@
       // Shut down the pieces
       this.addFinalizer( function() {
 
-        _.each( this.pieces, function(piece) {
+        _.each( this._pieces, function(piece) {
           if ( piece.off ) {
             piece.off();
           }

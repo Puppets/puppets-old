@@ -212,7 +212,7 @@ app.module( 'myPuppet', {
 });
 
 // Get the newly-created instance of Marionette.ItemView
-app.module( 'myPuppet' ).pieces( 'somePiece' );
+app.module( 'myPuppet' ).piece( 'somePiece' );
 ```
 
 You can dynamically add pieces with the same method. Simply pass an already-instantiated object as the second argument.
@@ -225,7 +225,7 @@ app.module( 'myPuppet', {
 var somePiece = new Backbone.Collection();
 
 // Set a new piece
-app.module( 'myPuppet' ).pieces( 'somePiece', somePiece );
+app.module( 'myPuppet' ).piece( 'somePiece', somePiece );
 ```
 
 You cannot overwrite a piece that already exists. Attempts to do so will be ignored, and the function will return `false`.
@@ -237,10 +237,10 @@ var somePiece = new Backbone.Collection();
 var anotherPiece = new Marionette.ItemView();
 
 // Set the piece...
-app.module( 'myPuppet' ).pieces( 'somePiece', somePiece );
+app.module( 'myPuppet' ).piece( 'somePiece', somePiece );
 
 // Returns false. This piece has already been set.
-app.module( 'myPuppet' ).pieces( 'somePiece', anotherPiece );
+app.module( 'myPuppet' ).piece( 'somePiece', anotherPiece );
 ```
 
 ### Pieces Local Channel
@@ -255,7 +255,7 @@ app.module( 'myPuppet', {
   }
 });
 
-var piece = app.module( 'myPuppet' ).pieces( 'somePiece' );
+var piece = app.module( 'myPuppet' ).piece( 'somePiece' );
 
 // The local channel messaging protocols
 piece.vent;
@@ -292,7 +292,7 @@ app.module( 'myPuppet', {
   }
 });
 
-var piece = app.module( 'myPuppet' ).pieces( 'somePiece' );
+var piece = app.module( 'myPuppet' ).piece( 'somePiece' );
 
 // This will automatically forward the render events to the local channel as:
 // before:render:somePiece
