@@ -84,7 +84,12 @@
 
     _createNewPiece: function( PieceClass, pieceName ) {
 
-      var newPiece = this._pieces[ pieceName ] = new PieceClass( this._options );
+      var newPiece;
+      if ( PieceClass.prototype instanceof Backbone.Model || PieceClass.prototype instanceof Backbone.Collection ) {
+        newPiece = this._pieces[ pieceName ] = new PieceClass( undefined, this._options );
+      } else {
+        newPiece = this._pieces[ pieceName ] = new PieceClass( this._options );
+      }
       this._setUpNewPiece( newPiece, pieceName );
 
     },
@@ -178,9 +183,9 @@
       eventsHash = eventsHash || {};
 
       Backbone.radio.channel( channelName )
-        .connectEvents( eventsHash.vent )
-        .connectCommands( eventsHash.commands )
-        .connectRequests( eventsHash.reqres );
+        .connectEvents( eventsHash.vent, this )
+        .connectCommands( eventsHash.commands, this )
+        .connectRequests( eventsHash.reqres, this );
 
     },
 
