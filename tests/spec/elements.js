@@ -171,3 +171,51 @@ describe( 'Setting a local events hash on the piece', function() {
   });
 
 });
+
+describe( 'Setting a merge hash on a piece', function() {
+
+  var CustomView, PuppetClass, puppet, piece, spy, propertyOne, propertyThree;
+
+  beforeEach(function() {
+
+    CustomView = Marionette.ItemView.extend({
+      merge: [
+        'propertyOne',
+        'propertyTwo'
+      ]
+    });
+
+    PuppetClass = Puppets.Puppet.extend({
+      defaults: {
+        propertyOne: 'pasta',
+        propertyTwo: 'yummy',
+        propertyThree: 'sandwiches'
+      },
+      pieces: {
+        somePiece: CustomView,
+      }
+    });
+    puppet = new PuppetClass( 'puppetName', {}, {
+      propertyOne: true,
+      propertyThree: false
+    });
+   piece = puppet.piece( 'somePiece' );
+   spy = sinon.spy( piece, 'option' );
+   propertyOne = piece.option( 'propertyOne' );
+   propertyThree = piece.option( 'propertyThree' );
+
+  });
+
+  it( 'should merge those properties from the puppet options', function() {
+    expect( piece._options ).to.have.property( 'propertyOne', true );
+    expect( piece._options ).to.have.property( 'propertyTwo', 'yummy' );
+    expect( piece._options ).to.not.have.property( 'propertyThree' );
+  });
+
+  it( 'should return the property when option is called', function() {
+    expect( spy ).to.have.been.calledTwice;
+    expect( propertyOne ).to.be.true;
+    expect( propertyThree ).to.be.undefined;
+  });
+
+});

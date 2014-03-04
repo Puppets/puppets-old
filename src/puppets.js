@@ -22,7 +22,12 @@
       this.puppetName = puppetName;
       this.channelName = this._channelName();
 
-      this._options = options || {};
+      this.defaults = this.defaults || {};
+      this._options = {};
+      // Grab the options from the list of defaults
+      _.extend( this._options, _.pick( options, _.keys(this.defaults) ));
+      // Set the defaults
+      _.defaults( this._options, this.defaults );
 
       // Attach references to relevant channels
       this.channels = {
@@ -37,6 +42,12 @@
       Marionette.Module.prototype.constructor.apply( this, Array.prototype.slice.call(arguments, 0) );
 
       this._addFinalizers();
+
+    },
+
+    option: function( optionName ) {
+
+      return this._options[ optionName ];
 
     },
 
@@ -102,6 +113,11 @@
       newPiece.channels = this.channels;
       newPiece.normalizeMethods = newPiece.normalizeMethods || this.normalizeMethods;
       newPiece.localEvents = newPiece.normalizeMethods( newPiece.localEvents );
+      newPiece._options = {};
+      // The options to be set on the new piece
+      newPiece.merge = newPiece.merge || [];
+      _.extend( newPiece._options, _.pick(this._options, newPiece.merge) );
+      newPiece.option = this.option;
 
       this._attachEvents( this.channelName, newPiece.localEvents );
       this._attachMessagingProtocols( newPiece, this.channels.local );

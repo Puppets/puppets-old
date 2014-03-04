@@ -79,6 +79,35 @@ var CustomPuppet = Puppets.Puppet.extend({
 });
 ```
 
+### Options
+
+Puppets can be passed in options when they're instantiated.
+
+```js
+app.module( 'myPuppet', {
+  // Options
+});
+```
+
+The `defaults` hash of a puppet can be used to both specify which options should be kept and what their default values should be.
+
+```js
+// Pass in `someProperty` or `anotherProperty` to have them automatically be attached to this Puppet
+var PuppetClass = Puppets.Puppet.extend({
+  defaults: {
+    someProperty: true,
+    anotherProperty: 'defaultValue'
+  }
+});
+```
+
+You can access these options with the `option` method.
+
+```js
+// Get the value of the someProperty option
+app.module( 'myPuppet' ).option( 'someProperty' );
+```
+
 ### Puppets Local Channel
 
 Every Puppet has its own local channel, which is automatically set up when you instantiate it. The name of the channel is  `puppet.{puppetName}`.

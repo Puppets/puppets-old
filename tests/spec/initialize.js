@@ -246,3 +246,52 @@ describe('Specifying an events hash on startup', function() {
 
 });
 
+describe('Setting options on a puppet', function() {
+
+  var PuppetClass, puppet, channelName;
+
+  beforeEach(function() {
+
+    PuppetClass = Puppets.Puppet.extend({
+      defaults: {
+        something: true,
+        anotherThing: false
+      }
+    });
+
+    puppet = new PuppetClass( 'puppetName', {}, {
+      something: false,
+      notAnOption: 'sandwiches'
+    });
+
+  });
+
+  describe('and passing in options', function() {
+
+    it( 'should attach them to the _options container', function() {
+      expect( puppet._options ).to.have.property( 'anotherThing', false );
+      expect( puppet._options ).to.have.property( 'something', false );
+      expect( puppet._options ).to.not.have.property( 'notAnOption' );
+    });
+
+  });
+
+  describe('and calling the option method', function() {
+
+    var spy, anotherThing, notAThing;
+
+    beforeEach(function() {
+      spy = sinon.spy( puppet, 'option' );
+      anotherThing = puppet.option( 'anotherThing' );
+      notAThing = puppet.option( 'notAThing' );
+    });
+
+    it( 'should return the option', function() {
+      expect( spy ).to.have.been.calledTwice;
+      expect( anotherThing ).to.be.false;
+      expect( notAThing ).to.be.undefined;
+    });
+
+  });
+
+});

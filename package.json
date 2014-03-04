@@ -1,6 +1,6 @@
 {
   "name": "puppets",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "A modular framework for Marionette",
   "main": "build/puppets.js",
   "keywords": [
