@@ -3,7 +3,7 @@ module.exports = function( grunt ) {
   require('load-grunt-tasks')(grunt);
 
   var fileList = [
-    'bower_components/backbone.wreqr-radio/backbone.wreqr-radio.js',
+    'bower_components/backbone.wreqr-radio/build/backbone.wreqr-radio.js',
     'src/puppets.js'
   ];
 
