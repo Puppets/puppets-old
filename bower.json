@@ -1,6 +1,6 @@
 {
   "name": "puppets",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "authors": [
     "Jmeas <jellyes2@gmail.com>"
   ],
@@ -36,7 +36,7 @@
     "sinonjs": "~1.8.2"
   },
   "dependencies": {
-    "backbone.wreqr-radio": "~1.0.0",
+    "backbone.wreqr-radio": "~1.2.0",
     "machina.wreqr-radio": "~1.0.0",
     "marionette": "~1.6.0"
   },
