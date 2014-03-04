@@ -275,7 +275,7 @@ var CustomItemView = Marionette.CompositeView.extend({
 });
 ```
 
-### Configuring Events on the Global Channel
+#### Configuring Events on the Global Channel
 
 There is no easy way for pieces to communicate globally, as they aren't meant to. Messages that need to
 'bubble' up to the global channel should first pass through the main Puppet, which then share the event through `emit`.

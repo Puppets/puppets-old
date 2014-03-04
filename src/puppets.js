@@ -31,22 +31,12 @@
       };
       this._attachMessagingProtocols( this, this.channels.local );
 
-      Marionette.Module.prototype.constructor.apply( this, Array.prototype.slice.call(arguments, 0) );
-
-      this._afterInit();
-
-    },
-
-    // After the initialize function runs,
-    // Run some final set up on the puppet
-    _afterInit: function() {
-
-      this._addFinalizers();
-
+      this._configurePieces();
       this._initDefaultListeners();
 
-      // Load up the pieces of this puppet
-      this._configurePieces();
+      Marionette.Module.prototype.constructor.apply( this, Array.prototype.slice.call(arguments, 0) );
+      
+      this._addFinalizers();
 
     },
 
