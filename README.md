@@ -1,6 +1,6 @@
 # Puppets
 
-An opinionated pattern for building modular components for Marionette.js
+An (experimental) opinionated pattern for building modular components for Marionette.js. Note: The API is subject to major changes.
 
 ## About
 
